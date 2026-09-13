@@ -56,7 +56,9 @@ func callUpstream(ctx context.Context, serverURL, token, method string, params a
 	}
 	resp, err := upstreamClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("upstream unreachable: %w", err)
+		// No response: the call may or may not have executed upstream.
+		// Uncertain, never a blind retry — reconcile with the idempotency key.
+		return nil, actions.Uncertain(fmt.Errorf("upstream unreachable: %w", err))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {

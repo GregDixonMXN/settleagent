@@ -35,3 +35,26 @@ Terminal states: `COMMITTED`, `ROLLED_BACK`, `PARTIALLY_COMPENSATED`, `FAILED`.
 3. **Committed is terminal.** No transition out of `COMMITTED`. No post-commit mutation, compensation, or rollback.
 4. **Irreversible never rolled back.** Actions with class `IRREVERSIBLE` (and `FINANCIAL`/`DESTRUCTIVE` unless compensable by policy) have no compensation path. If one fails mid-transaction the transaction goes to `FAILED`, never `COMPENSATING`/`ROLLED_BACK` for that action. Successful irreversible actions are never compensated.
 5. **Crash-resumable via persisted state.** Transaction state, per-action status, approvals, and policy decisions are persisted in Postgres before each side effect. On restart the executor reloads persisted state and resumes from the recorded state (`EXECUTING`/`COMPENSATING`/`ABORTING` continue; terminal states are left alone). Idempotency keys make re-driven tool calls safe.
+
+## Execution uncertainty (M8)
+
+An action whose side effects cannot be confirmed (timeout, connection lost
+mid-call) enters status `unknown`, not `failed`. Unknown actions:
+
+- produce no receipt (nothing confirmed, nothing attested),
+- refuse execution retries until reconciled (a retry could duplicate a
+  payment, email, or deletion),
+- are settled by `POST /v1/actions/:id/reconcile` (operator), which asks
+  the provider via the tool's reconciler: confirmed → `executed` + receipt;
+  confirmed-absent → `failed`; unresolvable → stays `unknown`, visible in
+  audit (`action.unknown`, `reconcile.no_reconciler`, `action.reconciled`).
+
+6. **Uncertain never auto-retries.** Only reconciliation moves `unknown`.
+
+## Receipt signatures (M8)
+
+Receipts carry `key_id` + ed25519 `signature` over the receipt hash
+(`AG_SIGNING_KEY` selects the key; unset means a logged ephemeral dev key).
+`GET /v1/receipts/verify?transaction_id=` reports chain + per-receipt
+signature validity; `POST /v1/receipts/verify` checks one receipt object.
+Tamper-evident, not immutable — terminology matters.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/agentguard/agentguard/internal/api"
 	"github.com/agentguard/agentguard/internal/auth"
+	"github.com/agentguard/agentguard/internal/keys"
 	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
@@ -60,6 +61,12 @@ func main() {
 		log.Printf("operator token (dashboard/human): %s", mustOperatorToken(mem, org.ID))
 	}
 	apiSrv := api.New(backend)
+	if signer, persistent, err := keys.Load(); err != nil {
+		log.Fatalf("signing keys: %v", err)
+	} else {
+		apiSrv.SetSigner(signer)
+		log.Printf("receipt signing: key %s (persistent=%v)", signer.KeyID(), persistent)
+	}
 	addr := os.Getenv("ADDR")
 	if addr == "" {
 		if p := os.Getenv("PORT"); p != "" {

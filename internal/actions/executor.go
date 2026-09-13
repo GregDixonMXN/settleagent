@@ -14,6 +14,21 @@ import (
 // integrations implement this interface; never fake rollback.
 type ToolHandler func(ctx context.Context, action domain.TxnAction) (map[string]any, error)
 
+// UncertainError marks failures where the side effect may or may not have
+// happened (timeout, connection lost). These must be reconciled, never
+// blindly retried: a retry could duplicate a payment, email, or deletion.
+type UncertainError struct{ Err error }
+
+func (e *UncertainError) Error() string { return "execution uncertain: " + e.Err.Error() }
+func (e *UncertainError) Unwrap() error { return e.Err }
+
+func Uncertain(err error) *UncertainError { return &UncertainError{Err: err} }
+
+// Reconciler settles an uncertain action by querying the provider with the
+// action's idempotency key. found=true with a result confirms execution;
+// found=false confirms it never happened.
+type Reconciler func(ctx context.Context, action domain.TxnAction) (found bool, result map[string]any, err error)
+
 // Compensator undoes a previously executed action where possible.
 type Compensator func(ctx context.Context, action domain.TxnAction) error
 
@@ -21,6 +36,7 @@ type Registry struct {
 	mu           sync.RWMutex
 	handlers     map[string]ToolHandler
 	compensators map[string]Compensator
+	reconcilers  map[string]Reconciler
 	meta         map[string][]domain.ActionClass
 }
 
@@ -38,6 +54,7 @@ func DefaultRegistry() *Registry {
 	r := &Registry{
 		handlers:     map[string]ToolHandler{},
 		compensators: map[string]Compensator{},
+		reconcilers:  map[string]Reconciler{},
 		meta: map[string][]domain.ActionClass{
 			"crm.lookup_customer":      {domain.ClassReadOnly},
 			"crm.update_record":        {domain.ClassReversible},
@@ -135,6 +152,20 @@ func (r *Registry) Compensate(ctx context.Context, a domain.TxnAction) error {
 		return fmt.Errorf("no compensation defined for %s.%s (treated as irreversible)", a.Tool, a.Action)
 	}
 	return c(ctx, a)
+}
+
+// RegisterReconciler attaches a settler for uncertain executions of a tool.
+func (r *Registry) RegisterReconciler(tool, action string, rec Reconciler) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.reconcilers[key(tool, action)] = rec
+}
+
+func (r *Registry) ReconcilerFor(tool, action string) (Reconciler, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	rec, ok := r.reconcilers[key(tool, action)]
+	return rec, ok
 }
 
 // Register adds or replaces a tool action at runtime (used by the MCP proxy

@@ -31,6 +31,7 @@ type Store interface {
 
 	AppendReceipt(r domain.Receipt) *domain.Receipt
 	ReceiptsForTxn(orgID, txnID string) []domain.Receipt
+	UpdateReceipt(r *domain.Receipt)
 
 	Emit(e domain.AuditEvent)
 	Audit(orgID, txnID string, limit int) []domain.AuditEvent

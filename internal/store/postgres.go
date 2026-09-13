@@ -584,7 +584,7 @@ func scanReceipt(row pgx.Row) (*domain.Receipt, bool) {
 	if err := row.Scan(&r.ID, &r.OrgID, &r.TransactionID, &actionID, &agentID, &principalID,
 		&r.Tool, &r.Action, &decision, &r.ArgumentsHash, &r.ResultHash,
 		&r.FinancialCents, &r.Compensation, &r.PrevHash, &r.Hash,
-		&r.StartedAt, &r.CompletedAt); err != nil {
+		&r.KeyID, &r.Signature, &r.StartedAt, &r.CompletedAt); err != nil {
 		return nil, false
 	}
 	if actionID.Valid {
@@ -605,7 +605,7 @@ func scanReceipt(row pgx.Row) (*domain.Receipt, bool) {
 
 const receiptCols = `receipt_id::text, org_id::text, txn_id::text, action_id, agent_id, principal_id,
 	tool, action_name, decision, args_hash, result_hash,
-	financial_cents, compensation, prev_hash, hash, started_at, completed_at`
+	financial_cents, compensation, prev_hash, hash, key_id, signature, started_at, completed_at`
 
 func (s *PGStore) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 	rows, err := s.pool.Query(context.Background(),
@@ -622,6 +622,12 @@ func (s *PGStore) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 		}
 	}
 	return out
+}
+
+func (s *PGStore) UpdateReceipt(r *domain.Receipt) {
+	_, _ = s.pool.Exec(context.Background(),
+		`UPDATE receipts SET key_id=$3, signature=$4
+		 WHERE org_id=$1 AND receipt_id=$2`, r.OrgID, r.ID, r.KeyID, r.Signature)
 }
 
 // --- audit ---

@@ -119,3 +119,12 @@ class AgentGuard:
 
     def revoke_credential(self, key_id):
         return self._req("DELETE", f"/v1/credentials/{key_id}")
+
+    def reconcile(self, action_id):
+        return self._req("POST", f"/v1/actions/{action_id}/reconcile")
+
+    def verify_receipts(self, transaction_id):
+        return self._req("GET", f"/v1/receipts/verify?transaction_id={transaction_id}")
+
+    def verify_receipt(self, receipt):
+        return self._req("POST", "/v1/receipts/verify", receipt)

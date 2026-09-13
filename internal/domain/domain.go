@@ -191,6 +191,8 @@ type Receipt struct {
 	Compensation   string       `json:"compensation"`
 	PrevHash       string       `json:"prev_hash"`
 	Hash           string       `json:"hash"`
+	KeyID          string       `json:"key_id,omitempty"`
+	Signature      string       `json:"signature,omitempty"`
 	StartedAt      time.Time    `json:"started_at"`
 	CompletedAt    time.Time    `json:"completed_at"`
 }

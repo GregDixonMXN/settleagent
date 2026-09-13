@@ -3,6 +3,23 @@
 Concise record of meaningful work: date, milestone, changes, decisions,
 known limitations, next step.
 
+## 2026-09-13 — M8 execution uncertainty + receipt signatures
+
+- `unknown` action status for unconfirmable side effects (typed
+  UncertainError; MCP transport failures map to it); no receipt, no blind
+  retry; reconcile endpoint (operator) settles via per-tool reconcilers
+  (confirmed → executed+receipt, absent → failed, none → stays visible).
+- Ed25519 receipt signatures (keys.Provider abstraction for future KMS +
+  M10 encryption); migration 007; verify endpoints (txn + single object);
+  ephemeral-dev key warning when AG_SIGNING_KEY unset.
+- `action.replayed` audit labels distinguish replay from fresh execution.
+- Live-verified: signed receipt validates, tampered/unsigned rejected,
+  replay labeled. Tests: uncertain park, confirm/absent, sig+tamper.
+- Known limitations: no background reconciliation worker (endpoint +
+  boot-report only); MCP has no reconcilers registered yet (unknown stays
+  until integrations provide them); single-key signing, no rotation.
+- Next: M9 policy V2.
+
 ## 2026-09-13 — M7 authority grants + credential lifecycle
 
 - AuthorityGrant model (scope tool.action/tool.*/*, max-amount + environment

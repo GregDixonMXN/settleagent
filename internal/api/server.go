@@ -11,6 +11,7 @@ import (
 	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
+	"github.com/agentguard/agentguard/internal/keys"
 	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/store"
 	"github.com/agentguard/agentguard/internal/transactions"
@@ -18,10 +19,18 @@ import (
 )
 
 type Server struct {
-	store   store.Store
-	svc     *gateway.Service
-	mux     *http.ServeMux
-	limiter *auth.Limiter
+	store    store.Store
+	svc      *gateway.Service
+	mux      *http.ServeMux
+	limiter  *auth.Limiter
+	verifier keys.Provider
+}
+
+// SetSigner enables receipt signatures on execution and signature
+// verification on the verify endpoints. Nil means unsigned (chain only).
+func (s *Server) SetSigner(p keys.Provider) {
+	s.svc.SetSigner(p)
+	s.verifier = p
 }
 
 func New(s store.Store) *Server {
@@ -76,6 +85,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/grants/{id}/revoke", s.handleRevokeGrant)
 	s.mux.HandleFunc("POST /v1/agents/{id}/credentials", s.handleRotateCredential)
 	s.mux.HandleFunc("DELETE /v1/credentials/{keyID}", s.handleRevokeCredential)
+	s.mux.HandleFunc("POST /v1/actions/{id}/reconcile", s.handleReconcile)
+	s.mux.HandleFunc("GET /v1/receipts/verify", s.handleVerifyReceipts)
+	s.mux.HandleFunc("POST /v1/receipts/verify", s.handleVerifyReceipt)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 

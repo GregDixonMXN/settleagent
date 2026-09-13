@@ -12,6 +12,11 @@ const openAPISpec = `{
     "/v1/transactions/{id}": {"get": {"summary": "Get transaction timeline"}},
     "/v1/actions": {"post": {"summary": "Propose action (policy evaluated pre-execution)"}},
     "/v1/actions/{id}/execute": {"post": {"summary": "Execute allowed/approved action"}},
+    "/v1/actions/{id}/reconcile": {"post": {"summary": "Reconcile uncertain execution (operator)"}},
+    "/v1/receipts/verify": {
+      "get": {"summary": "Verify receipt chain + signatures for a transaction"},
+      "post": {"summary": "Verify one receipt object"}
+    },
     "/v1/mcp/servers": {
       "post": {"summary": "Register upstream MCP server (operator)"},
       "get": {"summary": "List registered MCP servers"}

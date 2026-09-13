@@ -303,6 +303,19 @@ func (s *MemoryStore) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 	return out
 }
 
+// UpdateReceipt persists post-append receipt fields (key_id, signature).
+// The chain hash never changes, so ordering is unaffected.
+func (s *MemoryStore) UpdateReceipt(r *domain.Receipt) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, cur := range s.receiptsList {
+		if cur.ID == r.ID && cur.OrgID == r.OrgID {
+			cur.KeyID = r.KeyID
+			cur.Signature = r.Signature
+		}
+	}
+}
+
 func (s *MemoryStore) Emit(e domain.AuditEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
