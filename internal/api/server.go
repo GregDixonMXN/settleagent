@@ -175,10 +175,31 @@ func (s *Server) handleGetTxn(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{
 		"transaction": t,
-		"actions":     s.store.ActionsForTxn(orgID, id),
-		"receipts":    s.store.ReceiptsForTxn(orgID, id),
-		"audit":       s.store.Audit(orgID, id, 100),
+		"actions":     nonNullActions(s.store.ActionsForTxn(orgID, id)),
+		"receipts":    nonNullReceipts(s.store.ReceiptsForTxn(orgID, id)),
+		"audit":       nonNullAudit(s.store.Audit(orgID, id, 100)),
 	})
+}
+
+func nonNullActions(v []domain.TxnAction) any {
+	if v == nil {
+		return []domain.TxnAction{}
+	}
+	return v
+}
+
+func nonNullReceipts(v []domain.Receipt) any {
+	if v == nil {
+		return []domain.Receipt{}
+	}
+	return v
+}
+
+func nonNullAudit(v []domain.AuditEvent) any {
+	if v == nil {
+		return []domain.AuditEvent{}
+	}
+	return v
 }
 
 func (s *Server) handleProposeAction(w http.ResponseWriter, r *http.Request) {

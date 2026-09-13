@@ -81,6 +81,25 @@ func TestIdempotencyNoDoubleExecute(t *testing.T) {
 	}
 }
 
+func TestIdempotencyScopedToTransaction(t *testing.T) {
+	s, _, ag, tx := setup(t)
+	// Same key in a NEW transaction is a different action, never a replay.
+	tx2 := s.CreateTxn(domain.Transaction{OrgID: tx.OrgID, AgentID: ag.ID, PrincipalID: tx.PrincipalID, SessionID: "s2", Objective: "o2", Status: domain.TxnPlanning})
+	base := domain.TxnAction{OrgID: tx.OrgID, Tool: "crm", Action: "update_record", Arguments: map[string]any{"x": 1}, IdempotencyKey: "k-scope-1", Status: "allowed"}
+	first := base
+	first.TransactionID = tx.ID
+	a1, dup1 := s.AddAction(first)
+	second := base
+	second.TransactionID = tx2.ID
+	a2, dup2 := s.AddAction(second)
+	if dup1 || dup2 || a1.ID == a2.ID {
+		t.Fatal("same key across transactions must create distinct actions")
+	}
+	if a1.TransactionID != tx.ID || a2.TransactionID != tx2.ID {
+		t.Fatal("replay leaked across transaction boundary")
+	}
+}
+
 func TestTerminalStates(t *testing.T) {
 	tx := domain.Transaction{Status: domain.TxnCommitted}
 	if transactions.CanTransition(tx.Status, domain.TxnExecuting) {

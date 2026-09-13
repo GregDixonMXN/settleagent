@@ -382,7 +382,7 @@ func (s *PGStore) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
 		                     args_hash, amount_cents, idempotency_key, decision, policy_result,
 		                     status, result, error, latency_ms, created_at)
 		 VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11,$12::jsonb,$13,$14,$15::jsonb,$16,$17,$18)
-		 ON CONFLICT (org_id, idempotency_key) DO NOTHING
+		 ON CONFLICT (org_id, txn_id, idempotency_key) DO NOTHING
 		 RETURNING `+actionCols,
 		a.ID, a.OrgID, a.TransactionID, a.Seq, a.Tool, a.Action, jsonParam(a.Arguments),
 		classesToStrings(a.Classes), a.ArgumentsHash, a.AmountCents, a.IdempotencyKey,
@@ -393,8 +393,8 @@ func (s *PGStore) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
 	}
 	// Conflict: return the pre-existing action (idempotent replay).
 	existing, ok := scanAction(s.pool.QueryRow(ctx,
-		`SELECT `+actionCols+` FROM actions WHERE org_id=$1 AND idempotency_key=$2`,
-		a.OrgID, a.IdempotencyKey))
+		`SELECT `+actionCols+` FROM actions WHERE org_id=$1 AND txn_id=$2 AND idempotency_key=$3`,
+		a.OrgID, a.TransactionID, a.IdempotencyKey))
 	if !ok {
 		return &a, true
 	}

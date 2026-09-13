@@ -165,7 +165,9 @@ func (s *MemoryStore) ListTxns(orgID string) []domain.Transaction {
 func (s *MemoryStore) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	key := a.OrgID + "|" + a.IdempotencyKey
+	// Idempotency is scoped to (org, transaction): the same key in a new
+	// transaction is a different action, never a replay of another txn's.
+	key := a.OrgID + "|" + a.TransactionID + "|" + a.IdempotencyKey
 	if prev, ok := s.byIdem[key]; ok {
 		cp := *prev
 		return &cp, true
@@ -198,7 +200,7 @@ func (s *MemoryStore) UpdateAction(a *domain.TxnAction) {
 	defer s.mu.Unlock()
 	if cur, ok := s.actions[a.ID]; ok {
 		*cur = *a
-		s.byIdem[a.OrgID+"|"+a.IdempotencyKey] = cur
+		s.byIdem[a.OrgID+"|"+a.TransactionID+"|"+a.IdempotencyKey] = cur
 	}
 }
 
