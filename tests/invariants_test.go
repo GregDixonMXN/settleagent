@@ -12,7 +12,7 @@ import (
 	"github.com/agentguard/agentguard/internal/transactions"
 )
 
-func setup(t *testing.T) (*store.Store, *gateway.Service, domain.Agent, domain.Transaction) {
+func setup(t *testing.T) (*store.MemoryStore, *gateway.Service, domain.Agent, domain.Transaction) {
 	t.Helper()
 	s := store.New()
 	org, principal := s.SeedOrg("Acme")

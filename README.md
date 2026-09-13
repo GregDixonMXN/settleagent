@@ -63,5 +63,5 @@ return the original transaction instead of re-executing.
 - `apps/dashboard` — Next.js dashboard
 - `internal/` — identity, gateway, policies, approvals, actions, integrations,
   receipts, audit, store
-- `migrations/` — SQL schema
+- `internal/store/migrations/` — SQL schema (embedded, applied on boot)
 - `tests/` — end-to-end MVP demo script

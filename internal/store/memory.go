@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type Store struct {
+type MemoryStore struct {
 	mu sync.Mutex
 
 	orgs         map[string]domain.Organization
@@ -27,8 +27,8 @@ type Store struct {
 	audit        []domain.AuditEvent
 }
 
-func New() *Store {
-	return &Store{
+func New() *MemoryStore {
+	return &MemoryStore{
 		orgs:        map[string]domain.Organization{},
 		principals:  map[string]domain.Principal{},
 		agents:      map[string]domain.Agent{},
@@ -45,7 +45,7 @@ func New() *Store {
 func uid() string    { return uuid.NewString() }
 func now() time.Time { return time.Now().UTC() }
 
-func (s *Store) SeedOrg(name string) (domain.Organization, domain.Principal) {
+func (s *MemoryStore) SeedOrg(name string) (domain.Organization, domain.Principal) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	o := domain.Organization{ID: uid(), Name: name, CreatedAt: now()}
@@ -55,7 +55,7 @@ func (s *Store) SeedOrg(name string) (domain.Organization, domain.Principal) {
 	return o, p
 }
 
-func (s *Store) CreateAgent(orgID, principalID, name, env string, groups []string, secretHash string) domain.Agent {
+func (s *MemoryStore) CreateAgent(orgID, principalID, name, env string, groups []string, secretHash string) domain.Agent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a := domain.Agent{ID: uid(), OrgID: orgID, PrincipalID: principalID, Name: name, Groups: groups, Environment: env, Status: "active", CreatedAt: now()}
@@ -64,7 +64,7 @@ func (s *Store) CreateAgent(orgID, principalID, name, env string, groups []strin
 	return a
 }
 
-func (s *Store) GetAgent(orgID, agentID string) (domain.Agent, bool) {
+func (s *MemoryStore) GetAgent(orgID, agentID string) (domain.Agent, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a, ok := s.agents[agentID]
@@ -74,26 +74,26 @@ func (s *Store) GetAgent(orgID, agentID string) (domain.Agent, bool) {
 	return a, true
 }
 
-func (s *Store) CredentialHash(agentID string) (string, bool) {
+func (s *MemoryStore) CredentialHash(agentID string) (string, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	h, ok := s.credentials[agentID]
 	return h, ok
 }
 
-func (s *Store) SetPolicies(orgID string, rules []domain.PolicyRule) {
+func (s *MemoryStore) SetPolicies(orgID string, rules []domain.PolicyRule) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.policies[orgID] = rules
 }
 
-func (s *Store) Policies(orgID string) []domain.PolicyRule {
+func (s *MemoryStore) Policies(orgID string) []domain.PolicyRule {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]domain.PolicyRule(nil), s.policies[orgID]...)
 }
 
-func (s *Store) CreateTxn(t domain.Transaction) *domain.Transaction {
+func (s *MemoryStore) CreateTxn(t domain.Transaction) *domain.Transaction {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t.ID = uid()
@@ -108,7 +108,7 @@ func (s *Store) CreateTxn(t domain.Transaction) *domain.Transaction {
 	return &cp
 }
 
-func (s *Store) GetTxn(orgID, id string) (*domain.Transaction, bool) {
+func (s *MemoryStore) GetTxn(orgID, id string) (*domain.Transaction, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t, ok := s.txns[id]
@@ -119,7 +119,7 @@ func (s *Store) GetTxn(orgID, id string) (*domain.Transaction, bool) {
 	return &cp, true
 }
 
-func (s *Store) SetTxnStatus(orgID, id string, st domain.TxnStatus) error {
+func (s *MemoryStore) SetTxnStatus(orgID, id string, st domain.TxnStatus) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t, ok := s.txns[id]
@@ -131,7 +131,7 @@ func (s *Store) SetTxnStatus(orgID, id string, st domain.TxnStatus) error {
 	return nil
 }
 
-func (s *Store) ListTxns(orgID string) []domain.Transaction {
+func (s *MemoryStore) ListTxns(orgID string) []domain.Transaction {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []domain.Transaction
@@ -143,7 +143,7 @@ func (s *Store) ListTxns(orgID string) []domain.Transaction {
 	return out
 }
 
-func (s *Store) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
+func (s *MemoryStore) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := a.OrgID + "|" + a.IdempotencyKey
@@ -163,7 +163,7 @@ func (s *Store) AddAction(a domain.TxnAction) (*domain.TxnAction, bool) {
 	return &cp, false
 }
 
-func (s *Store) GetAction(orgID, id string) (*domain.TxnAction, bool) {
+func (s *MemoryStore) GetAction(orgID, id string) (*domain.TxnAction, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a, ok := s.actions[id]
@@ -174,7 +174,7 @@ func (s *Store) GetAction(orgID, id string) (*domain.TxnAction, bool) {
 	return &cp, true
 }
 
-func (s *Store) UpdateAction(a *domain.TxnAction) {
+func (s *MemoryStore) UpdateAction(a *domain.TxnAction) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if cur, ok := s.actions[a.ID]; ok {
@@ -183,7 +183,7 @@ func (s *Store) UpdateAction(a *domain.TxnAction) {
 	}
 }
 
-func (s *Store) ActionsForTxn(orgID, txnID string) []domain.TxnAction {
+func (s *MemoryStore) ActionsForTxn(orgID, txnID string) []domain.TxnAction {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []domain.TxnAction
@@ -195,7 +195,7 @@ func (s *Store) ActionsForTxn(orgID, txnID string) []domain.TxnAction {
 	return out
 }
 
-func (s *Store) CreateApproval(a domain.Approval) *domain.Approval {
+func (s *MemoryStore) CreateApproval(a domain.Approval) *domain.Approval {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a.ID = uid()
@@ -206,7 +206,7 @@ func (s *Store) CreateApproval(a domain.Approval) *domain.Approval {
 	return &cp
 }
 
-func (s *Store) GetApproval(orgID, id string) (*domain.Approval, bool) {
+func (s *MemoryStore) GetApproval(orgID, id string) (*domain.Approval, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a, ok := s.approvals[id]
@@ -217,7 +217,7 @@ func (s *Store) GetApproval(orgID, id string) (*domain.Approval, bool) {
 	return &cp, true
 }
 
-func (s *Store) DecideApproval(orgID, id, by string, approve bool) (*domain.Approval, bool) {
+func (s *MemoryStore) DecideApproval(orgID, id, by string, approve bool) (*domain.Approval, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	a, ok := s.approvals[id]
@@ -236,7 +236,7 @@ func (s *Store) DecideApproval(orgID, id, by string, approve bool) (*domain.Appr
 	return &cp, true
 }
 
-func (s *Store) PendingApprovals(orgID string) []domain.Approval {
+func (s *MemoryStore) PendingApprovals(orgID string) []domain.Approval {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []domain.Approval
@@ -248,7 +248,7 @@ func (s *Store) PendingApprovals(orgID string) []domain.Approval {
 	return out
 }
 
-func (s *Store) AppendReceipt(r domain.Receipt) *domain.Receipt {
+func (s *MemoryStore) AppendReceipt(r domain.Receipt) *domain.Receipt {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r.ID = uid()
@@ -265,7 +265,7 @@ func (s *Store) AppendReceipt(r domain.Receipt) *domain.Receipt {
 	return &cp
 }
 
-func (s *Store) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
+func (s *MemoryStore) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []domain.Receipt
@@ -277,7 +277,7 @@ func (s *Store) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 	return out
 }
 
-func (s *Store) Emit(e domain.AuditEvent) {
+func (s *MemoryStore) Emit(e domain.AuditEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	e.ID = uid()
@@ -285,11 +285,11 @@ func (s *Store) Emit(e domain.AuditEvent) {
 	s.audit = append(s.audit, e)
 }
 
-func (s *Store) emitLocked(e domain.AuditEvent) {
+func (s *MemoryStore) emitLocked(e domain.AuditEvent) {
 	s.audit = append(s.audit, e)
 }
 
-func (s *Store) Audit(orgID, txnID string, limit int) []domain.AuditEvent {
+func (s *MemoryStore) Audit(orgID, txnID string, limit int) []domain.AuditEvent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []domain.AuditEvent
@@ -307,7 +307,7 @@ func (s *Store) Audit(orgID, txnID string, limit int) []domain.AuditEvent {
 }
 
 // VerifyChain recomputes the org receipt chain; returns first broken index or -1.
-func (s *Store) VerifyChain(orgID string) int {
+func (s *MemoryStore) VerifyChain(orgID string) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	prev := ""

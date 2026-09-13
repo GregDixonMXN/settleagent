@@ -47,7 +47,7 @@ internal/receipts/        hash-chained receipt issuance + verification
 internal/audit/           append-only audit log
 internal/store/           Postgres access (one package per domain table set)
 internal/api/             shared HTTP types / middleware (auth, org scope, OTel)
-migrations/               SQL migrations (source of truth for schema)
+internal/store/migrations/  SQL migrations, embedded and applied on boot
 deploy/docker/            Docker Compose: api + dashboard + postgres + otel-collector
 examples/                 simple-agent, financial-agent, mcp-agent
 packages/                 shared TS/Go client SDKs

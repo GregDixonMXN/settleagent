@@ -14,15 +14,15 @@ import (
 )
 
 type Service struct {
-	store *store.Store
+	store store.Store
 	tools *actions.Registry
 }
 
-func NewService(s *store.Store, t *actions.Registry) *Service {
+func NewService(s store.Store, t *actions.Registry) *Service {
 	return &Service{store: s, tools: t}
 }
 
-func (g *Service) Store() *store.Store { return g.store }
+func (g *Service) Store() store.Store { return g.store }
 
 // ProposeAction evaluates policy BEFORE execution and persists the decision.
 // Denied actions are recorded and never executed. Approval-gated actions

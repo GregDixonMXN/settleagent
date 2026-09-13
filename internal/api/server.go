@@ -17,12 +17,12 @@ import (
 )
 
 type Server struct {
-	store *store.Store
+	store store.Store
 	svc   *gateway.Service
 	mux   *http.ServeMux
 }
 
-func New(s *store.Store) *Server {
+func New(s store.Store) *Server {
 	srv := &Server{store: s, svc: gateway.NewService(s, actions.DefaultRegistry()), mux: http.NewServeMux()}
 	srv.routes()
 	return srv
