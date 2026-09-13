@@ -121,4 +121,23 @@ func TestPostgresBackend(t *testing.T) {
 	if _, _, _, ok := pg.GetCredential(kid); ok {
 		t.Fatal("revoked credential still valid")
 	}
+
+	// Versioned policy sets (migration 008): draft, activate, history kept.
+	v2 := pg.CreatePolicySet(org.ID, []domain.PolicyRule{{
+		Name: "v2", Priority: 1, Match: domain.PolicyMatch{Tool: "email"},
+		Effect: domain.EffectDeny, Explanation: "v2",
+	}}, "tester")
+	if v2.Version < 2 || v2.Status != "draft" {
+		t.Fatalf("set: %+v", v2)
+	}
+	if !pg.ActivatePolicySet(org.ID, v2.Version) {
+		t.Fatal("activate failed")
+	}
+	active, ok := pg.ActivePolicySet(org.ID)
+	if !ok || active.Version != v2.Version {
+		t.Fatalf("active: %+v", active)
+	}
+	if n := len(pg.PolicySets(org.ID)); n < 2 {
+		t.Fatalf("history lost: %d sets", n)
+	}
 }

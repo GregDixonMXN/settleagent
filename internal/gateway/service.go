@@ -86,7 +86,11 @@ func (g *Service) ProposeAction(ctx context.Context, orgID, txnID, agentID strin
 		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "authority", ActorID: agentID, Type: "action.denied", Payload: map[string]any{"action_id": stored.ID, "reason_code": domain.ReasonAuthorityExceeded}})
 		return stored, nil
 	}
-	decision := policies.Evaluate(g.store.Policies(orgID), policies.EvalInput{Agent: ag, Action: *stored})
+	rules, version := g.store.Policies(orgID), 0
+	if set, ok := g.store.ActivePolicySet(orgID); ok {
+		rules, version = set.Rules, set.Version
+	}
+	decision := policies.Evaluate(rules, version, policies.EvalInput{Agent: ag, Action: *stored})
 	_, evalSpan := observe.Start(ctx, "policy.evaluate", map[string]string{
 		"tool": stored.Tool, "action": stored.Action,
 		"agent": ag.Name, "effect": string(decision.Effect),
@@ -204,7 +208,8 @@ func (g *Service) run(ctx context.Context, orgID string, a *domain.TxnAction) (*
 		ArgumentsHash: a.ArgumentsHash, Decision: a.Decision.Effect,
 		ResultHash:     receipts.Canonical(res),
 		FinancialCents: a.AmountCents, Compensation: "none",
-		StartedAt: start, CompletedAt: end,
+		PolicyVersion: a.Decision.PolicyVersion,
+		StartedAt:     start, CompletedAt: end,
 	})
 	g.signReceipt(r)
 	g.store.UpdateReceipt(r)
@@ -256,7 +261,8 @@ func (g *Service) Reconcile(ctx context.Context, orgID, actionID string) (*domai
 		ArgumentsHash: a.ArgumentsHash, Decision: a.Decision.Effect,
 		ResultHash:     receipts.Canonical(result),
 		FinancialCents: a.AmountCents, Compensation: "reconciled",
-		StartedAt: a.CreatedAt, CompletedAt: now,
+		PolicyVersion: a.Decision.PolicyVersion,
+		StartedAt:     a.CreatedAt, CompletedAt: now,
 	})
 	g.signReceipt(r)
 	g.store.UpdateReceipt(r)

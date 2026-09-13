@@ -88,6 +88,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/actions/{id}/reconcile", s.handleReconcile)
 	s.mux.HandleFunc("GET /v1/receipts/verify", s.handleVerifyReceipts)
 	s.mux.HandleFunc("POST /v1/receipts/verify", s.handleVerifyReceipt)
+	s.mux.HandleFunc("POST /v1/policies/evaluate", s.handleSimulatePolicy)
+	s.mux.HandleFunc("POST /v1/policies/sets", s.handleCreatePolicySet)
+	s.mux.HandleFunc("GET /v1/policies/sets", s.handleListPolicySets)
+	s.mux.HandleFunc("POST /v1/policies/sets/{version}/activate", s.handleActivatePolicySet)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 

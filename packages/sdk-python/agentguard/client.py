@@ -128,3 +128,18 @@ class AgentGuard:
 
     def verify_receipt(self, receipt):
         return self._req("POST", "/v1/receipts/verify", receipt)
+
+    def simulate(self, agent_id, tool, action, arguments=None):
+        return self._req("POST", "/v1/policies/evaluate", {
+            "agent_id": agent_id, "tool": tool, "action": action,
+            "arguments": arguments or {},
+        })
+
+    def create_policy_set(self, rules):
+        return self._req("POST", "/v1/policies/sets", {"rules": rules})
+
+    def policy_sets(self):
+        return self._req("GET", "/v1/policies/sets")
+
+    def activate_policy_set(self, version):
+        return self._req("POST", f"/v1/policies/sets/{version}/activate")

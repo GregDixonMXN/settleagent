@@ -107,6 +107,22 @@ export interface Grant {
   bootstrap?: boolean;
 }
 
+export interface PolicySet {
+  id: string;
+  version: number;
+  rules: unknown[];
+  status: string;
+  created_by?: string;
+  created_at?: string;
+}
+
+export interface SimResult {
+  authority: { covered: boolean; enforced: boolean; why: string };
+  decision: { effect: string; reason_code: string; explanation: string; policy_version: number };
+  classes: string[];
+  would_execute: boolean;
+}
+
 export const api = {
   health: () => req<{ ok: boolean }>(`/health`),
   listTxns: () => req<Transaction[]>(`/v1/transactions`),
@@ -128,6 +144,19 @@ export const api = {
   listPolicies: () => req<unknown[]>(`/v1/policies`),
   listGrants: (agentId: string) =>
     req<Grant[]>(`/v1/grants?agent_id=${encodeURIComponent(agentId)}`),
+  listPolicySets: () => req<PolicySet[]>(`/v1/policies/sets`),
+  createPolicySet: (rules: unknown) =>
+    req<PolicySet>(`/v1/policies/sets`, {
+      method: "POST",
+      body: JSON.stringify({ rules }),
+    }),
+  activatePolicySet: (version: number) =>
+    req<unknown>(`/v1/policies/sets/${version}/activate`, { method: "POST" }),
+  simulate: (body: { agent_id: string; tool: string; action: string; arguments?: Record<string, unknown> }) =>
+    req<SimResult>(`/v1/policies/evaluate`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   registerAgent: (body: {
     principal_id: string;
     name: string;

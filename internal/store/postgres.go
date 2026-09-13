@@ -173,23 +173,18 @@ func (s *PGStore) CredentialHash(agentID string) (string, bool) {
 // --- policies ---
 
 func (s *PGStore) SetPolicies(orgID string, rules []domain.PolicyRule) {
-	ctx := context.Background()
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return
-	}
-	defer tx.Rollback(ctx)
-	_, _ = tx.Exec(ctx, `DELETE FROM policy_rules WHERE org_id=$1`, orgID)
-	for _, r := range rules {
-		_, _ = tx.Exec(ctx,
-			`INSERT INTO policy_rules(org_id, name, description, priority, match, effect, explanation)
-			 VALUES($1,$2,$3,$4,$5::jsonb,$6,$7)`,
-			orgID, r.Name, r.Description, r.Priority, jsonParam(r.Match), string(r.Effect), r.Explanation)
-	}
-	_ = tx.Commit(ctx)
+	set := s.CreatePolicySet(orgID, rules, "system")
+	s.ActivatePolicySet(orgID, set.Version)
 }
 
 func (s *PGStore) Policies(orgID string) []domain.PolicyRule {
+	if set, ok := s.ActivePolicySet(orgID); ok {
+		return append([]domain.PolicyRule(nil), set.Rules...)
+	}
+	return s.legacyPolicies(orgID)
+}
+
+func (s *PGStore) legacyPolicies(orgID string) []domain.PolicyRule {
 	ctx := context.Background()
 	rows, err := s.pool.Query(ctx,
 		`SELECT policy_rule_id::text, org_id::text, name, description, priority, match::text, effect, explanation
@@ -210,6 +205,79 @@ func (s *PGStore) Policies(orgID string) []domain.PolicyRule {
 		out = append(out, r)
 	}
 	return out
+}
+
+func scanPolicySet(row pgx.Row) (domain.PolicySet, bool) {
+	var p domain.PolicySet
+	var rulesText string
+	if err := row.Scan(&p.ID, &p.OrgID, &p.Version, &rulesText, &p.Status, &p.CreatedBy, &p.CreatedAt); err != nil {
+		return domain.PolicySet{}, false
+	}
+	_ = json.Unmarshal([]byte(rulesText), &p.Rules)
+	return p, true
+}
+
+const policySetCols = `set_id::text, org_id::text, version, rules::text, status, created_by, created_at`
+
+func (s *PGStore) CreatePolicySet(orgID string, rules []domain.PolicyRule, createdBy string) domain.PolicySet {
+	ctx := context.Background()
+	// Serialize rule IDs: rules carry their own IDs for stable references.
+	for i := range rules {
+		if rules[i].ID == "" {
+			rules[i].ID = uuid.NewString()
+		}
+		rules[i].OrgID = orgID
+	}
+	row := s.pool.QueryRow(ctx,
+		`INSERT INTO policy_sets(org_id, version, rules, status, created_by)
+		 VALUES($1, COALESCE((SELECT MAX(version) FROM policy_sets WHERE org_id=$1),0)+1, $2::jsonb, 'draft', $3)
+		 RETURNING `+policySetCols, orgID, jsonParam(rules), createdBy)
+	if set, ok := scanPolicySet(row); ok {
+		return set
+	}
+	return domain.PolicySet{OrgID: orgID, Rules: rules, Status: "draft"}
+}
+
+func (s *PGStore) ActivatePolicySet(orgID string, version int) bool {
+	ctx := context.Background()
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return false
+	}
+	defer tx.Rollback(ctx)
+	var exists bool
+	_ = tx.QueryRow(ctx, `SELECT true FROM policy_sets WHERE org_id=$1 AND version=$2`, orgID, version).Scan(&exists)
+	if !exists {
+		return false
+	}
+	if _, err := tx.Exec(ctx, `UPDATE policy_sets SET status='disabled' WHERE org_id=$1 AND status='active'`, orgID); err != nil {
+		return false
+	}
+	if _, err := tx.Exec(ctx, `UPDATE policy_sets SET status='active' WHERE org_id=$1 AND version=$2`, orgID, version); err != nil {
+		return false
+	}
+	return tx.Commit(ctx) == nil
+}
+
+func (s *PGStore) PolicySets(orgID string) []domain.PolicySet {
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT `+policySetCols+` FROM policy_sets WHERE org_id=$1 ORDER BY version`, orgID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := []domain.PolicySet{}
+	for rows.Next() {
+		if p, ok := scanPolicySet(rows); ok {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func (s *PGStore) ActivePolicySet(orgID string) (domain.PolicySet, bool) {
+	return scanPolicySet(s.pool.QueryRow(context.Background(),
+		`SELECT `+policySetCols+` FROM policy_sets WHERE org_id=$1 AND status='active'`, orgID))
 }
 
 // --- transactions ---
@@ -568,12 +636,12 @@ func (s *PGStore) AppendReceipt(r domain.Receipt) *domain.Receipt {
 		`INSERT INTO receipts(receipt_id, org_id, txn_id, action_id, agent_id, principal_id,
 		                      tool, action_name, decision, args_hash, result_hash,
 		                      financial_cents, compensation, prev_hash, hash,
-		                      started_at, completed_at, payload)
-		 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb)`,
+		                      started_at, completed_at, policy_version, payload)
+		 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb)`,
 		r.ID, r.OrgID, r.TransactionID, optUUID(r.ActionID), optUUID(r.AgentID),
 		optUUID(r.PrincipalID), r.Tool, r.Action, string(r.Decision),
 		r.ArgumentsHash, r.ResultHash, r.FinancialCents, r.Compensation,
-		r.PrevHash, r.Hash, r.StartedAt, r.CompletedAt, jsonParam(payload))
+		r.PrevHash, r.Hash, r.StartedAt, r.CompletedAt, r.PolicyVersion, jsonParam(payload))
 	return &r
 }
 
@@ -584,7 +652,7 @@ func scanReceipt(row pgx.Row) (*domain.Receipt, bool) {
 	if err := row.Scan(&r.ID, &r.OrgID, &r.TransactionID, &actionID, &agentID, &principalID,
 		&r.Tool, &r.Action, &decision, &r.ArgumentsHash, &r.ResultHash,
 		&r.FinancialCents, &r.Compensation, &r.PrevHash, &r.Hash,
-		&r.KeyID, &r.Signature, &r.StartedAt, &r.CompletedAt); err != nil {
+		&r.KeyID, &r.Signature, &r.PolicyVersion, &r.StartedAt, &r.CompletedAt); err != nil {
 		return nil, false
 	}
 	if actionID.Valid {
@@ -605,7 +673,7 @@ func scanReceipt(row pgx.Row) (*domain.Receipt, bool) {
 
 const receiptCols = `receipt_id::text, org_id::text, txn_id::text, action_id, agent_id, principal_id,
 	tool, action_name, decision, args_hash, result_hash,
-	financial_cents, compensation, prev_hash, hash, key_id, signature, started_at, completed_at`
+	financial_cents, compensation, prev_hash, hash, key_id, signature, policy_version, started_at, completed_at`
 
 func (s *PGStore) ReceiptsForTxn(orgID, txnID string) []domain.Receipt {
 	rows, err := s.pool.Query(context.Background(),

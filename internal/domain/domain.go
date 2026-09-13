@@ -91,13 +91,38 @@ type PolicyMatch struct {
 	MinAmountCents *int64   `json:"min_amount_cents,omitempty"`
 	MinRecipients  *int     `json:"min_recipients,omitempty"`
 	Environment    string   `json:"environment,omitempty"`
+	// V2 conditions (all must hold when present; capped expressiveness).
+	Classifications []string    `json:"classifications,omitempty"`
+	Environments    []string    `json:"environments,omitempty"`
+	ResourcePrefix  string      `json:"resource_prefix,omitempty"`
+	TimeWindow      *TimeWindow `json:"time_window,omitempty"`
+}
+
+// TimeWindow constrains matching to UTC weekdays + hour range.
+// Weekdays: 0=Sunday..6=Saturday. Hours: 0-24, Start inclusive, End exclusive.
+type TimeWindow struct {
+	Weekdays  []int `json:"weekdays,omitempty"`
+	StartHour int   `json:"start_hour"`
+	EndHour   int   `json:"end_hour"`
 }
 
 type PolicyDecision struct {
-	Effect      PolicyEffect `json:"effect"`
-	RuleID      string       `json:"rule_id"`
-	Explanation string       `json:"explanation"`
-	ReasonCode  string       `json:"reason_code,omitempty"`
+	Effect        PolicyEffect `json:"effect"`
+	RuleID        string       `json:"rule_id"`
+	Explanation   string       `json:"explanation"`
+	ReasonCode    string       `json:"reason_code,omitempty"`
+	PolicyVersion int          `json:"policy_version,omitempty"`
+}
+
+// PolicySet is one immutable version of an org's rules. Only one ACTIVE.
+type PolicySet struct {
+	ID        string       `json:"id"`
+	OrgID     string       `json:"org_id"`
+	Version   int          `json:"version"`
+	Rules     []PolicyRule `json:"rules"`
+	Status    string       `json:"status"`
+	CreatedBy string       `json:"created_by,omitempty"`
+	CreatedAt time.Time    `json:"created_at"`
 }
 
 const (
@@ -193,6 +218,7 @@ type Receipt struct {
 	Hash           string       `json:"hash"`
 	KeyID          string       `json:"key_id,omitempty"`
 	Signature      string       `json:"signature,omitempty"`
+	PolicyVersion  int          `json:"policy_version,omitempty"`
 	StartedAt      time.Time    `json:"started_at"`
 	CompletedAt    time.Time    `json:"completed_at"`
 }

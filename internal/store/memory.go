@@ -21,6 +21,7 @@ type MemoryStore struct {
 	opTokens     map[string]opToken
 	mcpServers   map[string]mcpEntry
 	grants       map[string]*domain.AuthorityGrant
+	policySets   map[string][]domain.PolicySet
 	policies     map[string][]domain.PolicyRule
 	txns         map[string]*domain.Transaction
 	actions      map[string]*domain.TxnAction
@@ -106,15 +107,84 @@ func (s *MemoryStore) CredentialHash(agentID string) (string, bool) {
 }
 
 func (s *MemoryStore) SetPolicies(orgID string, rules []domain.PolicyRule) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.policies[orgID] = rules
+	s.CreatePolicySet(orgID, rules, "system")
+	s.ActivatePolicySet(orgID, s.latestVersionLocked(orgID))
+}
+
+func (s *MemoryStore) latestVersionLocked(orgID string) int {
+	max := 0
+	for _, p := range s.policySets[orgID] {
+		if p.Version > max {
+			max = p.Version
+		}
+	}
+	return max
 }
 
 func (s *MemoryStore) Policies(orgID string) []domain.PolicyRule {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for _, p := range s.policySets[orgID] {
+		if p.Status == "active" {
+			return append([]domain.PolicyRule(nil), p.Rules...)
+		}
+	}
 	return append([]domain.PolicyRule(nil), s.policies[orgID]...)
+}
+
+func (s *MemoryStore) CreatePolicySet(orgID string, rules []domain.PolicyRule, createdBy string) domain.PolicySet {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.policySets == nil {
+		s.policySets = map[string][]domain.PolicySet{}
+	}
+	set := domain.PolicySet{
+		ID: uid(), OrgID: orgID, Version: s.latestVersionLocked(orgID) + 1,
+		Rules:  append([]domain.PolicyRule(nil), rules...),
+		Status: "draft", CreatedBy: createdBy, CreatedAt: now(),
+	}
+	s.policySets[orgID] = append(s.policySets[orgID], set)
+	return set
+}
+
+func (s *MemoryStore) ActivatePolicySet(orgID string, version int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	found := false
+	for _, p := range s.policySets[orgID] {
+		if p.Version == version {
+			found = true
+		}
+	}
+	if !found {
+		return false
+	}
+	for i := range s.policySets[orgID] {
+		if s.policySets[orgID][i].Version == version {
+			s.policySets[orgID][i].Status = "active"
+		} else if s.policySets[orgID][i].Status == "active" {
+			s.policySets[orgID][i].Status = "disabled"
+		}
+	}
+	return true
+}
+
+func (s *MemoryStore) PolicySets(orgID string) []domain.PolicySet {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := append([]domain.PolicySet(nil), s.policySets[orgID]...)
+	return out
+}
+
+func (s *MemoryStore) ActivePolicySet(orgID string) (domain.PolicySet, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, p := range s.policySets[orgID] {
+		if p.Status == "active" {
+			return p, true
+		}
+	}
+	return domain.PolicySet{}, false
 }
 
 func (s *MemoryStore) CreateTxn(t domain.Transaction) *domain.Transaction {

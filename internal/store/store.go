@@ -14,6 +14,13 @@ type Store interface {
 	SetPolicies(orgID string, rules []domain.PolicyRule)
 	Policies(orgID string) []domain.PolicyRule
 
+	// Versioned policy sets: exactly one ACTIVE per org. SetPolicies is
+	// shorthand for create + activate (history preserved as prior versions).
+	CreatePolicySet(orgID string, rules []domain.PolicyRule, createdBy string) domain.PolicySet
+	ActivatePolicySet(orgID string, version int) bool
+	PolicySets(orgID string) []domain.PolicySet
+	ActivePolicySet(orgID string) (domain.PolicySet, bool)
+
 	CreateTxn(t domain.Transaction) *domain.Transaction
 	GetTxn(orgID, id string) (*domain.Transaction, bool)
 	SetTxnStatus(orgID, id string, st domain.TxnStatus) error

@@ -3,6 +3,22 @@
 Concise record of meaningful work: date, milestone, changes, decisions,
 known limitations, next step.
 
+## 2026-09-13 — M9 policy V2 core
+
+- Versioned policy_sets (one active per org, DB-enforced); draft/activate
+  endpoints with change-audit events; decisions + receipts stamp version;
+  history immutable (test asserts old receipt keeps v1).
+- Simulation endpoint (authority + policy, zero persistence) + dashboard
+  Policies page (versions, raw-JSON draft, test mode).
+- V2 conditions: classifications, environments, resource prefix, UTC time
+  windows (overnight wrap); expressiveness deliberately capped.
+- Live-verified: simulate → approval-required v1; draft v2; activate;
+  email now DENY v2; history intact. Docs/policies.md reconciled with
+  implemented schema.
+- Known limitations: no structured form authoring (raw JSON only); no
+  per-rule test-against-history; Policies() fallback keeps legacy rows.
+- Next: M10 real integrations.
+
 ## 2026-09-13 — M8 execution uncertainty + receipt signatures
 
 - `unknown` action status for unconfirmable side effects (typed

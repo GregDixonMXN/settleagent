@@ -3,6 +3,8 @@ package policies
 import (
 	"fmt"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/agentguard/agentguard/internal/domain"
 )
@@ -80,19 +82,71 @@ func ruleMatches(rule domain.PolicyRule, in EvalInput) bool {
 	if m.MinRecipients != nil && recipientsOf(in.Action) < *m.MinRecipients {
 		return false
 	}
+	if len(m.Classifications) > 0 {
+		hit := false
+		for _, want := range m.Classifications {
+			for _, c := range in.Action.Classes {
+				if string(c) == want {
+					hit = true
+				}
+			}
+		}
+		if !hit {
+			return false
+		}
+	}
+	if len(m.Environments) > 0 {
+		hit := false
+		for _, e := range m.Environments {
+			if strings.EqualFold(e, in.Agent.Environment) {
+				hit = true
+			}
+		}
+		if !hit {
+			return false
+		}
+	}
+	if m.ResourcePrefix != "" {
+		res, _ := in.Action.Arguments["resource"].(string)
+		if !strings.HasPrefix(res, m.ResourcePrefix) {
+			return false
+		}
+	}
+	if m.TimeWindow != nil && !inWindow(m.TimeWindow, time.Now().UTC()) {
+		return false
+	}
 	return true
+}
+
+func inWindow(w *domain.TimeWindow, now time.Time) bool {
+	if len(w.Weekdays) > 0 {
+		hit := false
+		for _, d := range w.Weekdays {
+			if int(now.Weekday()) == d {
+				hit = true
+			}
+		}
+		if !hit {
+			return false
+		}
+	}
+	h := now.Hour()
+	if w.StartHour <= w.EndHour {
+		return h >= w.StartHour && h < w.EndHour
+	}
+	return h >= w.StartHour || h < w.EndHour
 }
 
 // Evaluate returns the highest-priority matching rule. Rules sorted by
 // Priority ascending (lower = evaluated first); first match wins.
 // No match defaults to REQUIRE_APPROVAL for non-read-only actions and
 // ALLOW for pure READ_ONLY (fail-closed except reads).
-func Evaluate(rules []domain.PolicyRule, in EvalInput) domain.PolicyDecision {
+func Evaluate(rules []domain.PolicyRule, version int, in EvalInput) domain.PolicyDecision {
 	sorted := append([]domain.PolicyRule(nil), rules...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Priority < sorted[j].Priority })
 	for _, r := range sorted {
 		if ruleMatches(r, in) {
-			return domain.PolicyDecision{Effect: r.Effect, RuleID: r.ID, Explanation: r.Explanation}
+			return domain.PolicyDecision{Effect: r.Effect, RuleID: r.ID, Explanation: r.Explanation, PolicyVersion: version}
 		}
 	}
 	for _, c := range in.Action.Classes {
