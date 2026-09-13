@@ -15,6 +15,7 @@ import (
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 	"github.com/agentguard/agentguard/internal/transactions"
+	"github.com/google/uuid"
 )
 
 type Server struct {
@@ -67,6 +68,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/receipts", s.handleListReceipts)
 	s.mux.HandleFunc("GET /v1/audit", s.handleAudit)
 	s.mux.HandleFunc("GET /v1/policies", s.handleListPolicies)
+	s.mux.HandleFunc("POST /v1/mcp/servers", s.handleRegisterMCPServer)
+	s.mux.HandleFunc("GET /v1/mcp/servers", s.handleListMCPServers)
+	s.mux.HandleFunc("GET /v1/mcp/tools", s.handleListMCPTools)
+	s.mux.HandleFunc("POST /v1/mcp/call", s.handleMCPCall)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 
@@ -93,6 +98,10 @@ func callerAgentID(r *http.Request) string {
 	return ""
 }
 
+func authIdentity(r *http.Request) (auth.Identity, bool) {
+	return auth.IdentityFrom(r.Context())
+}
+
 func (s *Server) handleRegisterAgent(w http.ResponseWriter, r *http.Request) {
 	orgID := orgOf(r)
 	if orgID == "" {
@@ -111,6 +120,10 @@ func (s *Server) handleRegisterAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		errJSON(w, 400, "bad_request", "Body needs name, principal_id, environment, groups.")
+		return
+	}
+	if _, err := uuid.Parse(body.PrincipalID); err != nil {
+		errJSON(w, 400, "bad_principal", "principal_id must be a UUID of a principal in this organization.")
 		return
 	}
 	keyID, secret, hash, err := auth.NewAgentSecret()

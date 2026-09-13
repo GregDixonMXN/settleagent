@@ -176,3 +176,19 @@ type AuditEvent struct {
 	Payload       map[string]any `json:"payload,omitempty"`
 	CreatedAt     time.Time      `json:"created_at"`
 }
+
+type MCPTool struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type MCPServer struct {
+	ID        string                   `json:"id"`
+	OrgID     string                   `json:"org_id"`
+	Name      string                   `json:"name"`
+	URL       string                   `json:"url"`
+	HasToken  bool                     `json:"has_token"`
+	Tools     []MCPTool                `json:"tools"`
+	Classes   map[string][]ActionClass `json:"classes,omitempty"`
+	CreatedAt time.Time                `json:"created_at"`
+}

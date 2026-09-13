@@ -43,4 +43,9 @@ type Store interface {
 	AgentCredentialHashes(orgID string) map[string]string // agentID -> hash
 	CreateOperatorToken(orgID, name, keyID, secretHash string)
 	GetOperatorToken(keyID string) (orgID, name, secretHash string, ok bool)
+
+	// MCP: registered upstream servers. Tokens never leave the store.
+	UpsertMCPServer(s domain.MCPServer, authToken string) domain.MCPServer
+	GetMCPServer(orgID, name string) (domain.MCPServer, string, bool)
+	ListMCPServers(orgID string) []domain.MCPServer
 }

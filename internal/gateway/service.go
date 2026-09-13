@@ -25,6 +25,9 @@ func NewService(s store.Store, t *actions.Registry) *Service {
 
 func (g *Service) Store() store.Store { return g.store }
 
+// Tools exposes the tool registry for runtime registration (MCP proxy).
+func (g *Service) Tools() *actions.Registry { return g.tools }
+
 // ProposeAction evaluates policy BEFORE execution and persists the decision.
 // Denied actions are recorded and never executed. Approval-gated actions
 // create an approval and pause; execution requires DecideApproval + RunApproved.

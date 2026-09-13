@@ -19,6 +19,7 @@ type MemoryStore struct {
 	credentials  map[string]string // agentID -> bcrypt hash (never plaintext)
 	credByKey    map[string]credRef
 	opTokens     map[string]opToken
+	mcpServers   map[string]mcpEntry
 	policies     map[string][]domain.PolicyRule
 	txns         map[string]*domain.Transaction
 	actions      map[string]*domain.TxnAction
@@ -37,10 +38,16 @@ type opToken struct {
 	orgID, name, hash string
 }
 
+type mcpEntry struct {
+	server domain.MCPServer
+	token  string
+}
+
 func New() *MemoryStore {
 	return &MemoryStore{
 		credByKey:   map[string]credRef{},
 		opTokens:    map[string]opToken{},
+		mcpServers:  map[string]mcpEntry{},
 		orgs:        map[string]domain.Organization{},
 		principals:  map[string]domain.Principal{},
 		agents:      map[string]domain.Agent{},
@@ -385,4 +392,40 @@ func (s *MemoryStore) GetOperatorToken(keyID string) (string, string, string, bo
 		return "", "", "", false
 	}
 	return t.orgID, t.name, t.hash, true
+}
+
+func mcpKey(orgID, name string) string { return orgID + "|" + name }
+
+func (s *MemoryStore) UpsertMCPServer(srv domain.MCPServer, authToken string) domain.MCPServer {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if srv.ID == "" {
+		srv.ID = uid()
+	}
+	srv.CreatedAt = now()
+	srv.HasToken = authToken != ""
+	s.mcpServers[mcpKey(srv.OrgID, srv.Name)] = mcpEntry{server: srv, token: authToken}
+	return srv
+}
+
+func (s *MemoryStore) GetMCPServer(orgID, name string) (domain.MCPServer, string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	e, ok := s.mcpServers[mcpKey(orgID, name)]
+	if !ok {
+		return domain.MCPServer{}, "", false
+	}
+	return e.server, e.token, true
+}
+
+func (s *MemoryStore) ListMCPServers(orgID string) []domain.MCPServer {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []domain.MCPServer{}
+	for _, e := range s.mcpServers {
+		if e.server.OrgID == orgID {
+			out = append(out, e.server)
+		}
+	}
+	return out
 }

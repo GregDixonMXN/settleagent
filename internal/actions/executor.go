@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/agentguard/agentguard/internal/domain"
@@ -17,6 +18,7 @@ type ToolHandler func(ctx context.Context, action domain.TxnAction) (map[string]
 type Compensator func(ctx context.Context, action domain.TxnAction) error
 
 type Registry struct {
+	mu           sync.RWMutex
 	handlers     map[string]ToolHandler
 	compensators map[string]Compensator
 	meta         map[string][]domain.ActionClass
@@ -104,6 +106,8 @@ func DefaultRegistry() *Registry {
 }
 
 func (r *Registry) Classes(tool, action string) []domain.ActionClass {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	if c, ok := r.meta[key(tool, action)]; ok {
 		return c
 	}
@@ -114,7 +118,9 @@ func (r *Registry) Classes(tool, action string) []domain.ActionClass {
 }
 
 func (r *Registry) Execute(ctx context.Context, a domain.TxnAction) (map[string]any, error) {
+	r.mu.RLock()
 	h, ok := r.handlers[key(a.Tool, a.Action)]
+	r.mu.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("unknown tool action %s.%s", a.Tool, a.Action)
 	}
@@ -122,11 +128,30 @@ func (r *Registry) Execute(ctx context.Context, a domain.TxnAction) (map[string]
 }
 
 func (r *Registry) Compensate(ctx context.Context, a domain.TxnAction) error {
+	r.mu.RLock()
 	c, ok := r.compensators[key(a.Tool, a.Action)]
+	r.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("no compensation defined for %s.%s (treated as irreversible)", a.Tool, a.Action)
 	}
 	return c(ctx, a)
+}
+
+// Register adds or replaces a tool action at runtime (used by the MCP proxy
+// when a server is registered). Safe for concurrent use.
+func (r *Registry) Register(tool, action string, classes []domain.ActionClass, h ToolHandler, c Compensator) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(classes) == 0 {
+		classes = []domain.ActionClass{domain.ClassUnknown}
+	}
+	r.meta[key(tool, action)] = classes
+	if h != nil {
+		r.handlers[key(tool, action)] = h
+	}
+	if c != nil {
+		r.compensators[key(tool, action)] = c
+	}
 }
 
 func IsReversible(a domain.TxnAction) bool {

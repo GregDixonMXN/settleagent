@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func authSetup(t *testing.T) (store.Store, string, string, string, string) {
+func authSetup(t *testing.T) (store.Store, string, string, string, string, string) {
 	t.Helper()
 	s := store.New()
 	org, principal := s.SeedOrg("Auth Co")
@@ -29,7 +29,7 @@ func authSetup(t *testing.T) (store.Store, string, string, string, string) {
 		t.Fatal(err)
 	}
 	s.CreateOperatorToken(org.ID, "tester", okid, opHash)
-	return s, org.ID, secret, opSecret, ag.ID
+	return s, org.ID, principal.ID, secret, opSecret, ag.ID
 }
 
 func doReq(t *testing.T, h http.Handler, method, path, token, body string) *httptest.ResponseRecorder {
@@ -50,7 +50,7 @@ func doReq(t *testing.T, h http.Handler, method, path, token, body string) *http
 }
 
 func TestUnauthenticatedRejected(t *testing.T) {
-	s, _, _, _, _ := authSetup(t)
+	s, _, _, _, _, _ := authSetup(t)
 	h := api.New(s).Handler()
 	rec := doReq(t, h, "GET", "/v1/transactions", "", "")
 	if rec.Code != 401 {
@@ -63,7 +63,7 @@ func TestUnauthenticatedRejected(t *testing.T) {
 }
 
 func TestBadTokenRejected(t *testing.T) {
-	s, _, _, _, _ := authSetup(t)
+	s, _, _, _, _, _ := authSetup(t)
 	h := api.New(s).Handler()
 	rec := doReq(t, h, "GET", "/v1/transactions", "ag_deadbeef_wrong", "")
 	if rec.Code != 401 {
@@ -72,7 +72,7 @@ func TestBadTokenRejected(t *testing.T) {
 }
 
 func TestAgentFlowsAndMismatch(t *testing.T) {
-	s, orgID, secret, opSecret, agentID := authSetup(t)
+	s, orgID, prinID, secret, opSecret, agentID := authSetup(t)
 	h := api.New(s).Handler()
 
 	// Create txn as self.
@@ -86,7 +86,7 @@ func TestAgentFlowsAndMismatch(t *testing.T) {
 
 	// Acting as another (real) agent is forbidden.
 	rec = doReq(t, h, "POST", "/v1/agents", opSecret,
-		`{"principal_id":"p","name":"a2","environment":"production","groups":[]}`)
+		`{"principal_id":"`+prinID+`","name":"a2","environment":"production","groups":[]}`)
 	if rec.Code != 201 {
 		t.Fatalf("setup register: %d", rec.Code)
 	}
@@ -104,7 +104,7 @@ func TestAgentFlowsAndMismatch(t *testing.T) {
 
 	// Agents cannot register agents.
 	rec = doReq(t, h, "POST", "/v1/agents", secret,
-		`{"principal_id":"p","name":"evil","environment":"production","groups":[]}`)
+		`{"principal_id":"`+prinID+`","name":"evil","environment":"production","groups":[]}`)
 	if rec.Code != 403 {
 		t.Fatalf("expected 403 operator_required, got %d", rec.Code)
 	}
@@ -119,11 +119,11 @@ func TestAgentFlowsAndMismatch(t *testing.T) {
 }
 
 func TestOperatorCanRegisterAndDecide(t *testing.T) {
-	s, _, agentSecret, opSecret, agentID := authSetup(t)
+	s, _, prinID, agentSecret, opSecret, agentID := authSetup(t)
 	h := api.New(s).Handler()
 
 	rec := doReq(t, h, "POST", "/v1/agents", opSecret,
-		`{"principal_id":"p","name":"a2","environment":"staging","groups":["support"]}`)
+		`{"principal_id":"`+prinID+`","name":"a2","environment":"staging","groups":["support"]}`)
 	if rec.Code != 201 {
 		t.Fatalf("operator register: %d %s", rec.Code, rec.Body.String())
 	}
@@ -184,7 +184,7 @@ func TestLegacySecretNeedsOrg(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
-	s, _, secret, _, _ := authSetup(t)
+	s, _, _, secret, _, _ := authSetup(t)
 	limited := auth.Middleware(s, auth.NewLimiter(2, time.Minute), http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
 	for i := 0; i < 2; i++ {

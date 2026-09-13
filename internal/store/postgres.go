@@ -747,3 +747,73 @@ func (s *PGStore) GetOperatorToken(keyID string) (string, string, string, bool) 
 		 WHERE key_id=$1 AND revoked_at IS NULL`, keyID).Scan(&org, &name, &hash)
 	return org, name, hash, err == nil
 }
+
+func (s *PGStore) UpsertMCPServer(srv domain.MCPServer, authToken string) domain.MCPServer {
+	ctx := context.Background()
+	toolsJSON := jsonParam(srv.Tools)
+	classesJSON := jsonParam(srv.Classes)
+	var id, created string
+	_ = s.pool.QueryRow(ctx,
+		`INSERT INTO mcp_servers(org_id, name, url, auth_token, tools, classes, updated_at)
+		 VALUES($1,$2,$3,$4,$5::jsonb,$6::jsonb,now())
+		 ON CONFLICT (org_id, name) DO UPDATE
+		   SET url=EXCLUDED.url, auth_token=EXCLUDED.auth_token,
+		       tools=EXCLUDED.tools, classes=EXCLUDED.classes, updated_at=now()
+		 RETURNING server_id::text, created_at::text`,
+		srv.OrgID, srv.Name, srv.URL, authToken, toolsJSON, classesJSON).Scan(&id, &created)
+	srv.ID = id
+	srv.HasToken = authToken != ""
+	if t, err := time.Parse(time.RFC3339, created); err == nil {
+		srv.CreatedAt = t
+	}
+	return srv
+}
+
+func scanMCPServer(withToken bool) (string, func(pgx.Row) (domain.MCPServer, string, bool)) {
+	q := `server_id::text, org_id::text, name, url, tools::text, classes::text, created_at`
+	if withToken {
+		q += `, auth_token`
+	}
+	scan := func(row pgx.Row) (domain.MCPServer, string, bool) {
+		var srv domain.MCPServer
+		var toolsText, classesText string
+		var token string
+		var err error
+		if withToken {
+			err = row.Scan(&srv.ID, &srv.OrgID, &srv.Name, &srv.URL, &toolsText, &classesText, &srv.CreatedAt, &token)
+		} else {
+			err = row.Scan(&srv.ID, &srv.OrgID, &srv.Name, &srv.URL, &toolsText, &classesText, &srv.CreatedAt)
+		}
+		if err != nil {
+			return domain.MCPServer{}, "", false
+		}
+		_ = json.Unmarshal([]byte(toolsText), &srv.Tools)
+		_ = json.Unmarshal([]byte(classesText), &srv.Classes)
+		srv.HasToken = token != ""
+		return srv, token, true
+	}
+	return q, scan
+}
+
+func (s *PGStore) GetMCPServer(orgID, name string) (domain.MCPServer, string, bool) {
+	cols, scan := scanMCPServer(true)
+	return scan(s.pool.QueryRow(context.Background(),
+		`SELECT `+cols+` FROM mcp_servers WHERE org_id=$1 AND name=$2`, orgID, name))
+}
+
+func (s *PGStore) ListMCPServers(orgID string) []domain.MCPServer {
+	cols, scan := scanMCPServer(false)
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT `+cols+` FROM mcp_servers WHERE org_id=$1 ORDER BY name`, orgID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := []domain.MCPServer{}
+	for rows.Next() {
+		if srv, _, ok := scan(rows); ok {
+			out = append(out, srv)
+		}
+	}
+	return out
+}
