@@ -111,3 +111,38 @@ Multi-approver/quorum, OPA/Rego or Cedar policy backend, KMS-backed receipt
 signing, SIEM export, per-action sandboxing, full MCP spec coverage, SLA/SLOs.
 
 Non-goals for M0–M5: multi-region, HA failover, billing, agent reputation scoring.
+
+---
+
+# V0.2 — cut-down scope (see docs/V0.2_AUDIT.md)
+
+Four milestones, in order. Everything else (CLI, webhooks, risk budgets,
+trust telemetry/scores, TS SDK, live dashboard updates, multi-replica
+limiter, K8s docs) is explicitly v0.3+.
+
+## M7 — Authority grants + credential lifecycle
+
+AuthorityGrant model (agent, principal, scope, constraints, environment,
+expiry, revocation); enforcement BEFORE policy with machine-readable reason
+codes; rotation/revocation endpoints + last-used metadata; dashboard
+Authority section (read first).
+
+## M8 — Execution uncertainty + receipt signatures
+
+EXECUTION_UNKNOWN state; reconciliation worker that settles (never silently
+abandons) open txns; server-signed receipts + `verify` utility; replay
+labeling in UI (replay vs fresh execution distinguishable).
+
+## M9 — Policy V2 core
+
+Versioned policy sets (version stamped on receipts, history immutable);
+simulation endpoint (`POST /v1/policies/evaluate`) + dashboard test mode;
+classification/time/resource conditions with capped expressiveness;
+policy-change audit events; dashboard policy authoring.
+
+## M10 — Real integrations + productionized pairing
+
+Stripe test-mode, GitHub, Postgres read-classified, HTTP with SSRF
+allowlist (shell allowlist-only or deferred); upstream-token encryption
+(local key dev, KMS-compatible prod); Ballast-against-AgentGuard on a
+persistent stack with governed-task docs.

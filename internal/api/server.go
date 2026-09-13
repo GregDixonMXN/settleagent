@@ -12,7 +12,6 @@ import (
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
 	"github.com/agentguard/agentguard/internal/observe"
-	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 	"github.com/agentguard/agentguard/internal/transactions"
 	"github.com/google/uuid"
@@ -329,5 +328,3 @@ func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(openAPISpec))
 }
-
-var _ = policies.Evaluate

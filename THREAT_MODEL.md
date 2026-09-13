@@ -111,3 +111,35 @@ Defers: per-tenant vault, secret rotation automation, egress proxy.
   hardening (M5 container posture) rather than TEEs/attestation.
 - Dashboard auth is a stub role — production needs real OIDC + MFA.
 - Single gateway replica — no Byzantine/failover story yet (see M6).
+
+## 12. Stored third-party credentials at rest (v0.2)
+
+Attack: DB read leaks upstream MCP tokens / integration secrets.
+Mitigation: envelope encryption via key-management abstraction (local key
+dev, KMS-compatible prod) — M10. Until then: register only low-value
+servers, rotate on suspicion, tokens never in logs/API/audit.
+Status: OPEN, accepted interim with documented handling.
+
+## 13. Upstream content treated as instruction (v0.2)
+
+Attack: compromised MCP server returns tool content that a downstream agent
+loop executes as instructions (stored prompt injection).
+Mitigation: content is evidence, never instruction — enforce at display
+(redact/sandbox render) and at any loop consuming receipts; provenance
+(server id, tool, trace) travels with content.
+Status: OPEN — M8/M10.
+
+## 14. Replay indistinguishable from fresh execution (v0.2)
+
+Attack/accident: operator mistakes an idempotent replay for new work and
+double-approves downstream consequences.
+Mitigation: UI labels replays (receipt IDs already make them detectable);
+M8 adds explicit replay markers.
+Status: OPEN, low severity (no duplicate side effects possible).
+
+## 15. Rate-limiter multiplication on scale-out (v0.2)
+
+Attack: multi-replica deploy silently multiplies per-credential budget.
+Mitigation: single-node enforcement documented as a scaling limit; shared
+buckets before second replica.
+Status: ACCEPTED for single-node; blocks scale-out, not v0.2.
