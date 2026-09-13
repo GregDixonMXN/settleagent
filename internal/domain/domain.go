@@ -97,6 +97,35 @@ type PolicyDecision struct {
 	Effect      PolicyEffect `json:"effect"`
 	RuleID      string       `json:"rule_id"`
 	Explanation string       `json:"explanation"`
+	ReasonCode  string       `json:"reason_code,omitempty"`
+}
+
+const (
+	ReasonAllowed           = "ALLOWED"
+	ReasonAuthorityExceeded = "AUTHORITY_EXCEEDED"
+	ReasonPolicyDenied      = "POLICY_DENIED"
+	ReasonApprovalRequired  = "APPROVAL_REQUIRED"
+)
+
+// GrantConstraints are per-grant limits. Empty/absent means no limit.
+type GrantConstraints struct {
+	MaxAmountCents *int64   `json:"max_amount_cents,omitempty"`
+	Environments   []string `json:"environments,omitempty"`
+}
+
+type AuthorityGrant struct {
+	ID          string           `json:"id"`
+	OrgID       string           `json:"org_id"`
+	PrincipalID string           `json:"principal_id,omitempty"`
+	AgentID     string           `json:"agent_id"`
+	Scope       []string         `json:"scope"`
+	Constraints GrantConstraints `json:"constraints"`
+	Environment string           `json:"environment,omitempty"`
+	IssuedBy    string           `json:"issued_by,omitempty"`
+	IssuedAt    time.Time        `json:"issued_at"`
+	ExpiresAt   *time.Time       `json:"expires_at,omitempty"`
+	RevokedAt   *time.Time       `json:"revoked_at,omitempty"`
+	Bootstrap   bool             `json:"bootstrap,omitempty"`
 }
 
 type TxnAction struct {

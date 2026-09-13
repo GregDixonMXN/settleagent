@@ -48,4 +48,14 @@ type Store interface {
 	UpsertMCPServer(s domain.MCPServer, authToken string) domain.MCPServer
 	GetMCPServer(orgID, name string) (domain.MCPServer, string, bool)
 	ListMCPServers(orgID string) []domain.MCPServer
+
+	// Authority grants: what an agent may attempt (policy decides outcome).
+	CreateGrant(g domain.AuthorityGrant) domain.AuthorityGrant
+	GrantsForAgent(orgID, agentID string) []domain.AuthorityGrant
+	RevokeGrant(orgID, grantID string) bool
+
+	// Credential lifecycle.
+	RevokeCredential(keyID string) bool
+	TouchCredential(keyID string)
+	TouchOperatorToken(keyID string)
 }

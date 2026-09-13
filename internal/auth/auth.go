@@ -25,6 +25,7 @@ type Identity struct {
 	AgentID  string // empty for operators
 	Operator bool
 	Name     string // operator token name, or agent name lookup is caller's job
+	KeyID    string // credential key id (for rotation, revocation, last-used)
 }
 
 type ctxKey struct{}
@@ -96,7 +97,8 @@ func Authenticate(s store.Store, secret, headerOrg string) (Identity, bool) {
 		if !ok || !check(secret, hash) {
 			return Identity{}, false
 		}
-		return Identity{OrgID: org, Operator: true, Name: name}, true
+		s.TouchOperatorToken(kid)
+		return Identity{OrgID: org, Operator: true, Name: name, KeyID: kid}, true
 	}
 	if strings.HasPrefix(secret, "ag_") {
 		rest := strings.TrimPrefix(secret, "ag_")
@@ -105,7 +107,8 @@ func Authenticate(s store.Store, secret, headerOrg string) (Identity, bool) {
 			if !ok || !check(secret, hash) {
 				return Identity{}, false
 			}
-			return Identity{OrgID: org, AgentID: agent}, true
+			s.TouchCredential(kid)
+			return Identity{OrgID: org, AgentID: agent, KeyID: kid}, true
 		}
 		// Legacy secret: bounded per-org scan, needs X-Org-ID.
 		if headerOrg == "" {

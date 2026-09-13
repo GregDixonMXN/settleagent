@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/agentguard/agentguard/internal/actions"
+	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
 	"github.com/agentguard/agentguard/internal/policies"
@@ -89,5 +90,35 @@ func TestPostgresBackend(t *testing.T) {
 	counts := pg.Recover()
 	if counts["EXECUTING"]+counts["PLANNING"]+counts["AWAITING_APPROVAL"] == 0 {
 		t.Fatalf("recovery missed open txn: %v", counts)
+	}
+
+	// Authority grants round-trip (migration 006).
+	max := int64(10000)
+	gr := pg.CreateGrant(domain.AuthorityGrant{OrgID: org.ID, AgentID: ag.ID,
+		Scope: []string{"stripe.refund"}, Constraints: domain.GrantConstraints{MaxAmountCents: &max}})
+	if gr.ID == "" {
+		t.Fatal("grant not persisted")
+	}
+	list := pg.GrantsForAgent(org.ID, ag.ID)
+	if len(list) != 1 || list[0].Constraints.MaxAmountCents == nil || *list[0].Constraints.MaxAmountCents != 10000 {
+		t.Fatalf("grant round-trip: %+v", list)
+	}
+	if !pg.RevokeGrant(org.ID, gr.ID) {
+		t.Fatal("revoke failed")
+	}
+	// Revoked credential stops authenticating.
+	kid, _, hash, err := auth.NewAgentSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pg.StoreCredential(org.ID, ag.ID, kid, hash)
+	if _, _, _, ok := pg.GetCredential(kid); !ok {
+		t.Fatal("credential lookup failed")
+	}
+	if !pg.RevokeCredential(kid) {
+		t.Fatal("credential revoke failed")
+	}
+	if _, _, _, ok := pg.GetCredential(kid); ok {
+		t.Fatal("revoked credential still valid")
 	}
 }

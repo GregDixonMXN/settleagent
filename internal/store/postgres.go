@@ -817,3 +817,82 @@ func (s *PGStore) ListMCPServers(orgID string) []domain.MCPServer {
 	}
 	return out
 }
+
+const grantCols = `grant_id::text, org_id::text, principal_id::text, agent_id::text,
+	scope, constraints::text, environment, issued_by, issued_at, expires_at, revoked_at,
+	(COALESCE(metadata->>'bootstrap','false') = 'true') AS bootstrap`
+
+func scanGrant(row pgx.Row) (domain.AuthorityGrant, bool) {
+	var g domain.AuthorityGrant
+	var principal *string
+	var constraintsText string
+	if err := row.Scan(&g.ID, &g.OrgID, &principal, &g.AgentID, &g.Scope,
+		&constraintsText, &g.Environment, &g.IssuedBy, &g.IssuedAt,
+		&g.ExpiresAt, &g.RevokedAt, &g.Bootstrap); err != nil {
+		return domain.AuthorityGrant{}, false
+	}
+	if principal != nil {
+		g.PrincipalID = *principal
+	}
+	_ = json.Unmarshal([]byte(constraintsText), &g.Constraints)
+	return g, true
+}
+
+func (s *PGStore) CreateGrant(g domain.AuthorityGrant) domain.AuthorityGrant {
+	meta := map[string]any{}
+	if g.Bootstrap {
+		meta["bootstrap"] = "true"
+	}
+	row := s.pool.QueryRow(context.Background(),
+		`INSERT INTO authority_grants(org_id, principal_id, agent_id, scope, constraints,
+		                              environment, issued_by, expires_at, metadata)
+		 VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9::jsonb)
+		 RETURNING `+grantCols,
+		g.OrgID, optUUID(g.PrincipalID), g.AgentID, g.Scope, jsonParam(g.Constraints),
+		g.Environment, g.IssuedBy, g.ExpiresAt, jsonParam(meta))
+	if created, ok := scanGrant(row); ok {
+		return created
+	}
+	return g
+}
+
+func (s *PGStore) GrantsForAgent(orgID, agentID string) []domain.AuthorityGrant {
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT `+grantCols+` FROM authority_grants
+		 WHERE org_id=$1 AND agent_id=$2 ORDER BY issued_at`, orgID, agentID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := []domain.AuthorityGrant{}
+	for rows.Next() {
+		if g, ok := scanGrant(rows); ok {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+func (s *PGStore) RevokeGrant(orgID, grantID string) bool {
+	ct, err := s.pool.Exec(context.Background(),
+		`UPDATE authority_grants SET revoked_at=now()
+		 WHERE org_id=$1 AND grant_id=$2 AND revoked_at IS NULL`, orgID, grantID)
+	return err == nil && ct.RowsAffected() == 1
+}
+
+func (s *PGStore) RevokeCredential(keyID string) bool {
+	ct, err := s.pool.Exec(context.Background(),
+		`UPDATE agent_credentials SET revoked_at=now()
+		 WHERE key_id=$1 AND revoked_at IS NULL`, keyID)
+	return err == nil && ct.RowsAffected() == 1
+}
+
+func (s *PGStore) TouchCredential(keyID string) {
+	_, _ = s.pool.Exec(context.Background(),
+		`UPDATE agent_credentials SET last_used_at=now() WHERE key_id=$1`, keyID)
+}
+
+func (s *PGStore) TouchOperatorToken(keyID string) {
+	_, _ = s.pool.Exec(context.Background(),
+		`UPDATE operator_tokens SET last_used_at=now() WHERE key_id=$1`, keyID)
+}

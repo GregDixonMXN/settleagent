@@ -13,7 +13,15 @@ Base path: `/v1`. All resources org-scoped (org derived server-side from credent
 - Agent secret `ag_<keyid>_<random>`: bound to one agent; `agent_id` in
   request bodies must equal the credential's agent (operators exempt).
 - Operator secret `ago_<keyid>_<random>`: human/dashboard access; required
-  for `POST /v1/agents` (register) and `POST /v1/approvals/:id/decide`.
+  for `POST /v1/agents` (register), `POST /v1/approvals/:id/decide`,
+  grant management, and credential rotation/revocation.
+- Authorization order per action: authenticate → resolve principal →
+  authority grants (step 4) → policy → decision. Agents with no grants run
+  policy-only (audit-logged); once grants exist, uncovered operations deny
+  with reason code `AUTHORITY_EXCEEDED` before policy runs.
+- Decisions carry machine-readable `reason_code` (`ALLOWED`,
+  `AUTHORITY_EXCEEDED`, `POLICY_DENIED`, `APPROVAL_REQUIRED`) alongside the
+  human `why`.
 - Pre-key-ID secrets (`ag_<hex>`) still work via bounded per-org scan when
   `X-Org-ID` is supplied; new secrets ignore that header entirely.
 - Failures are 401 (`missing_credentials`, `invalid_credentials`) or 403

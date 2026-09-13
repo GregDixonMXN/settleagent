@@ -53,24 +53,46 @@ func (g *Service) ProposeAction(ctx context.Context, orgID, txnID, agentID strin
 	if dup {
 		return stored, nil // idempotent replay: no duplicate side effects
 	}
+	// Step 4 of authorization: delegated authority BEFORE policy.
+	// Agents with no grants run policy-only (audit-logged migration path).
+	covered, hasGrants, authWhy := CheckAuthority(g.store.GrantsForAgent(orgID, agentID), ag, tool, action, amt)
+	if hasGrants {
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "authority", ActorID: agentID, Type: "authority.evaluated", Payload: map[string]any{"action_id": stored.ID, "covered": covered, "why": authWhy, "trace_id": observe.TraceID(ctx)}})
+	}
+	if hasGrants && !covered {
+		denied := domain.PolicyDecision{Effect: domain.EffectDeny, Explanation: authWhy, ReasonCode: domain.ReasonAuthorityExceeded}
+		stored.Decision = &denied
+		stored.Status = "denied"
+		g.store.UpdateAction(stored)
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "authority", ActorID: agentID, Type: "action.denied", Payload: map[string]any{"action_id": stored.ID, "reason_code": domain.ReasonAuthorityExceeded}})
+		return stored, nil
+	}
 	decision := policies.Evaluate(g.store.Policies(orgID), policies.EvalInput{Agent: ag, Action: *stored})
 	_, evalSpan := observe.Start(ctx, "policy.evaluate", map[string]string{
 		"tool": stored.Tool, "action": stored.Action,
 		"agent": ag.Name, "effect": string(decision.Effect),
 	})
 	evalSpan.End()
+	switch decision.Effect {
+	case domain.EffectDeny:
+		decision.ReasonCode = domain.ReasonPolicyDenied
+	case domain.EffectRequireApproval:
+		decision.ReasonCode = domain.ReasonApprovalRequired
+	default:
+		decision.ReasonCode = domain.ReasonAllowed
+	}
 	stored.Decision = &decision
 	switch decision.Effect {
 	case domain.EffectDeny:
 		stored.Status = "denied"
 		g.store.UpdateAction(stored)
-		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": "DENY", "why": decision.Explanation}})
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": "DENY", "why": decision.Explanation, "reason_code": decision.ReasonCode}})
 		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "action.denied", Payload: map[string]any{"action_id": stored.ID}})
 		return stored, nil
 	case domain.EffectRequireApproval:
 		stored.Status = "awaiting_approval"
 		g.store.UpdateAction(stored)
-		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": "REQUIRE_APPROVAL", "why": decision.Explanation}})
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": "REQUIRE_APPROVAL", "why": decision.Explanation, "reason_code": decision.ReasonCode}})
 		g.store.CreateApproval(domain.Approval{OrgID: orgID, TransactionID: txnID, ActionID: &stored.ID, RequestedBy: agentID, Reason: decision.Explanation, ExposureCents: amt})
 		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "system", ActorID: agentID, Type: "approval.requested", Payload: map[string]any{"action_id": stored.ID}})
 		_ = transactions.MustTransition(t, domain.TxnAwaitingApproval)
@@ -79,7 +101,7 @@ func (g *Service) ProposeAction(ctx context.Context, orgID, txnID, agentID strin
 	default:
 		stored.Status = "allowed"
 		g.store.UpdateAction(stored)
-		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": string(decision.Effect), "why": decision.Explanation}})
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "policy", ActorID: decision.RuleID, Type: "policy.evaluated", Payload: map[string]any{"effect": string(decision.Effect), "why": decision.Explanation, "reason_code": decision.ReasonCode}})
 		return stored, nil
 	}
 }

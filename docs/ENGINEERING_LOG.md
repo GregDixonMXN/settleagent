@@ -3,6 +3,24 @@
 Concise record of meaningful work: date, milestone, changes, decisions,
 known limitations, next step.
 
+## 2026-09-13 — M7 authority grants + credential lifecycle
+
+- AuthorityGrant model (scope tool.action/tool.*/*, max-amount + environment
+  constraints, expiry, revocation, bootstrap flag), migration 006.
+- Enforcement BEFORE policy in ProposeAction; no-grants agents run
+  policy-only (audit-logged migration path); uncovered ops deny with
+  AUTHORITY_EXCEEDED + human why. Reason codes on all decisions and audit.
+- Endpoints: grants CRUD-ish (create/list/revoke, operator), credential
+  rotate/revoke; last-used tracking on every auth; revoked creds rejected
+  in keyed lookup and legacy fallback.
+- Dashboard Authority page (read); SDK grant/credential methods; protocol
+  docs updated. Live-verified all five paths (policy-only, covered,
+  over-cap, out-of-scope, revoked).
+- Known limitations: policy-only mode is operator opt-in by neglect —
+  document narrowing bootstrap grants; legacy fallback hashes have no
+  per-key revocation.
+- Next: M8 execution uncertainty + receipt signatures.
+
 ## 2026-09-13 — v0.2 audit (M7 prep)
 
 - Verified v0.1: build + full suite green (incl. race), live enforcement

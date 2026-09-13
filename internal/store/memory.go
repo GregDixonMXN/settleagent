@@ -20,6 +20,7 @@ type MemoryStore struct {
 	credByKey    map[string]credRef
 	opTokens     map[string]opToken
 	mcpServers   map[string]mcpEntry
+	grants       map[string]*domain.AuthorityGrant
 	policies     map[string][]domain.PolicyRule
 	txns         map[string]*domain.Transaction
 	actions      map[string]*domain.TxnAction
@@ -32,10 +33,14 @@ type MemoryStore struct {
 
 type credRef struct {
 	orgID, agentID, hash string
+	revoked              bool
+	lastUsed             time.Time
 }
 
 type opToken struct {
 	orgID, name, hash string
+	revoked           bool
+	lastUsed          time.Time
 }
 
 type mcpEntry struct {
@@ -360,7 +365,7 @@ func (s *MemoryStore) GetCredential(keyID string) (string, string, string, bool)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, ok := s.credByKey[keyID]
-	if !ok {
+	if !ok || c.revoked {
 		return "", "", "", false
 	}
 	return c.orgID, c.agentID, c.hash, true
@@ -370,11 +375,23 @@ func (s *MemoryStore) AgentCredentialHashes(orgID string) map[string]string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := map[string]string{}
+	// Legacy pre-key-ID hashes (no revocation tracking; rotation replaces).
 	for id, a := range s.agents {
 		if a.OrgID == orgID {
 			if h, ok := s.credentials[id]; ok {
 				out[id] = h
 			}
+		}
+	}
+	// Keyed credentials override; revoked ones are excluded.
+	for _, c := range s.credByKey {
+		if c.orgID != orgID {
+			continue
+		}
+		if c.revoked {
+			delete(out, c.agentID)
+		} else {
+			out[c.agentID] = c.hash
 		}
 	}
 	return out
@@ -390,7 +407,7 @@ func (s *MemoryStore) GetOperatorToken(keyID string) (string, string, string, bo
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	t, ok := s.opTokens[keyID]
-	if !ok {
+	if !ok || t.revoked {
 		return "", "", "", false
 	}
 	return t.orgID, t.name, t.hash, true
@@ -430,4 +447,73 @@ func (s *MemoryStore) ListMCPServers(orgID string) []domain.MCPServer {
 		}
 	}
 	return out
+}
+
+func (s *MemoryStore) CreateGrant(g domain.AuthorityGrant) domain.AuthorityGrant {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if g.ID == "" {
+		g.ID = uid()
+	}
+	g.IssuedAt = now()
+	if s.grants == nil {
+		s.grants = map[string]*domain.AuthorityGrant{}
+	}
+	cp := g
+	s.grants[g.ID] = &cp
+	return cp
+}
+
+func (s *MemoryStore) GrantsForAgent(orgID, agentID string) []domain.AuthorityGrant {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []domain.AuthorityGrant{}
+	for _, g := range s.grants {
+		if g.OrgID == orgID && g.AgentID == agentID {
+			out = append(out, *g)
+		}
+	}
+	return out
+}
+
+func (s *MemoryStore) RevokeGrant(orgID, grantID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	g, ok := s.grants[grantID]
+	if !ok || g.OrgID != orgID || g.RevokedAt != nil {
+		return false
+	}
+	t := now()
+	g.RevokedAt = &t
+	return true
+}
+
+func (s *MemoryStore) RevokeCredential(keyID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.credByKey[keyID]
+	if !ok || c.revoked {
+		return false
+	}
+	c.revoked = true
+	s.credByKey[keyID] = c
+	return true
+}
+
+func (s *MemoryStore) TouchCredential(keyID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if c, ok := s.credByKey[keyID]; ok {
+		c.lastUsed = now()
+		s.credByKey[keyID] = c
+	}
+}
+
+func (s *MemoryStore) TouchOperatorToken(keyID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if t, ok := s.opTokens[keyID]; ok {
+		t.lastUsed = now()
+		s.opTokens[keyID] = t
+	}
 }

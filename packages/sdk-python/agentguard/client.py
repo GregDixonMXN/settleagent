@@ -99,3 +99,23 @@ class AgentGuard:
 
     def policies(self):
         return self._req("GET", "/v1/policies")
+
+    def create_grant(self, agent_id, scope, constraints=None, environment="",
+                     expires_at=None):
+        return self._req("POST", "/v1/grants", {
+            "agent_id": agent_id, "scope": scope,
+            "constraints": constraints or {}, "environment": environment,
+            "expires_at": expires_at,
+        })
+
+    def grants(self, agent_id):
+        return self._req("GET", f"/v1/grants?agent_id={agent_id}")
+
+    def revoke_grant(self, grant_id):
+        return self._req("POST", f"/v1/grants/{grant_id}/revoke")
+
+    def rotate_credential(self, agent_id):
+        return self._req("POST", f"/v1/agents/{agent_id}/credentials")
+
+    def revoke_credential(self, key_id):
+        return self._req("DELETE", f"/v1/credentials/{key_id}")

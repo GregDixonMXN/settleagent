@@ -94,6 +94,19 @@ export interface TxnDetail {
   audit: AuditEvent[];
 }
 
+export interface Grant {
+  id: string;
+  agent_id: string;
+  scope: string[];
+  constraints?: { max_amount_cents?: number; environments?: string[] };
+  environment?: string;
+  issued_by?: string;
+  issued_at?: string;
+  expires_at?: string;
+  revoked_at?: string;
+  bootstrap?: boolean;
+}
+
 export const api = {
   health: () => req<{ ok: boolean }>(`/health`),
   listTxns: () => req<Transaction[]>(`/v1/transactions`),
@@ -113,6 +126,8 @@ export const api = {
       txnId ? `/v1/audit?transaction_id=${encodeURIComponent(txnId)}` : `/v1/audit`
     ),
   listPolicies: () => req<unknown[]>(`/v1/policies`),
+  listGrants: (agentId: string) =>
+    req<Grant[]>(`/v1/grants?agent_id=${encodeURIComponent(agentId)}`),
   registerAgent: (body: {
     principal_id: string;
     name: string;

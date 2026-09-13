@@ -71,6 +71,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/mcp/servers", s.handleListMCPServers)
 	s.mux.HandleFunc("GET /v1/mcp/tools", s.handleListMCPTools)
 	s.mux.HandleFunc("POST /v1/mcp/call", s.handleMCPCall)
+	s.mux.HandleFunc("POST /v1/grants", s.handleCreateGrant)
+	s.mux.HandleFunc("GET /v1/grants", s.handleListGrants)
+	s.mux.HandleFunc("POST /v1/grants/{id}/revoke", s.handleRevokeGrant)
+	s.mux.HandleFunc("POST /v1/agents/{id}/credentials", s.handleRotateCredential)
+	s.mux.HandleFunc("DELETE /v1/credentials/{keyID}", s.handleRevokeCredential)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 
