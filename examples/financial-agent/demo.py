@@ -16,9 +16,12 @@ from agentguard import AgentGuard
 API = os.environ.get("API_URL", "http://127.0.0.1:8080")
 ORG = os.environ["ORG"]
 PRINCIPAL = os.environ["PRINCIPAL"]
+OPERATOR = os.environ.get("OPERATOR_TOKEN", "")
 
+op = AgentGuard(API, org_id=ORG, token=OPERATOR or None)
 g = AgentGuard(API, org_id=ORG)
-reg = g.register_agent(PRINCIPAL, "billing-agent-7", groups=["support"])
+reg = op.register_agent(PRINCIPAL, "billing-agent-7", groups=["support"])
+g.token = reg["api_secret"]
 g.agent_id = reg["agent"]["id"]
 txn = g.create_transaction(PRINCIPAL, "sess_comp_1", "refund_then_notify_with_failure")
 tx = txn["id"]

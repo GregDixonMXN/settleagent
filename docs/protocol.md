@@ -2,6 +2,25 @@
 
 Base path: `/v1`. All resources org-scoped (org derived server-side from credential, never from client input).
 
+> v0.1 implements the subset listed in `GET /openapi.json`. The wider
+> resource table below is the target surface; endpoint shapes there are
+> aspirational until marked implemented.
+
+## Authentication (implemented)
+
+- `Authorization: Bearer <secret>` required on all `/v1/*` (`/health` and
+  `/openapi.json` stay open).
+- Agent secret `ag_<keyid>_<random>`: bound to one agent; `agent_id` in
+  request bodies must equal the credential's agent (operators exempt).
+- Operator secret `ago_<keyid>_<random>`: human/dashboard access; required
+  for `POST /v1/agents` (register) and `POST /v1/approvals/:id/decide`.
+- Pre-key-ID secrets (`ag_<hex>`) still work via bounded per-org scan when
+  `X-Org-ID` is supplied; new secrets ignore that header entirely.
+- Failures are 401 (`missing_credentials`, `invalid_credentials`) or 403
+  (`operator_required`, `agent_mismatch`), each with a human-readable `why`.
+- Per-credential fixed-window rate limiting (120 req/min default); 429
+  `rate_limited` when exceeded. Single-process buckets in v0.1.
+
 ## Resources
 
 | Resource | Endpoints |

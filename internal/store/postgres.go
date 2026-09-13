@@ -701,3 +701,49 @@ func (s *PGStore) VerifyChain(orgID string) int {
 	}
 	return -1
 }
+
+func (s *PGStore) StoreCredential(orgID, agentID, keyID, secretHash string) {
+	_, _ = s.pool.Exec(context.Background(),
+		`INSERT INTO agent_credentials(org_id, agent_id, key_id, secret_hash)
+		 VALUES($1,$2,$3,$4)`, orgID, agentID, keyID, secretHash)
+}
+
+func (s *PGStore) GetCredential(keyID string) (string, string, string, bool) {
+	var org, agent, hash string
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT org_id::text, agent_id::text, secret_hash FROM agent_credentials
+		 WHERE key_id=$1 AND revoked_at IS NULL`, keyID).Scan(&org, &agent, &hash)
+	return org, agent, hash, err == nil
+}
+
+func (s *PGStore) AgentCredentialHashes(orgID string) map[string]string {
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT DISTINCT ON (agent_id) agent_id::text, secret_hash FROM agent_credentials
+		 WHERE org_id=$1 AND revoked_at IS NULL ORDER BY agent_id, created_at DESC`, orgID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var id, hash string
+		if err := rows.Scan(&id, &hash); err == nil {
+			out[id] = hash
+		}
+	}
+	return out
+}
+
+func (s *PGStore) CreateOperatorToken(orgID, name, keyID, secretHash string) {
+	_, _ = s.pool.Exec(context.Background(),
+		`INSERT INTO operator_tokens(org_id, name, key_id, secret_hash)
+		 VALUES($1,$2,$3,$4)`, orgID, name, keyID, secretHash)
+}
+
+func (s *PGStore) GetOperatorToken(keyID string) (string, string, string, bool) {
+	var org, name, hash string
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT org_id::text, name, secret_hash FROM operator_tokens
+		 WHERE key_id=$1 AND revoked_at IS NULL`, keyID).Scan(&org, &name, &hash)
+	return org, name, hash, err == nil
+}

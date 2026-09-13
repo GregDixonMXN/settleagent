@@ -1,34 +1,34 @@
 package api
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/agentguard/agentguard/internal/actions"
+	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 	"github.com/agentguard/agentguard/internal/transactions"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Server struct {
-	store store.Store
-	svc   *gateway.Service
-	mux   *http.ServeMux
+	store   store.Store
+	svc     *gateway.Service
+	mux     *http.ServeMux
+	limiter *auth.Limiter
 }
 
 func New(s store.Store) *Server {
-	srv := &Server{store: s, svc: gateway.NewService(s, actions.DefaultRegistry()), mux: http.NewServeMux()}
+	srv := &Server{store: s, svc: gateway.NewService(s, actions.DefaultRegistry()), mux: http.NewServeMux(), limiter: auth.NewLimiter(120, time.Minute)}
 	srv.routes()
 	return srv
 }
 
-func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Handler() http.Handler { return auth.Middleware(s.store, s.limiter, s.mux) }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -58,19 +58,37 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 
-func randomSecret() string {
-	b := make([]byte, 24)
-	_, _ = rand.Read(b)
-	return "ag_" + hex.EncodeToString(b)
+// orgOf returns the tenant from the verified credential. The tenant comes
+// from authentication, never from headers or body parameters.
+func orgOf(r *http.Request) string {
+	if id, ok := auth.IdentityFrom(r.Context()); ok {
+		return id.OrgID
+	}
+	return ""
 }
 
-// orgID is carried in X-Org-ID header for MVP (OIDC-ready later).
-func orgOf(r *http.Request) string { return r.Header.Get("X-Org-ID") }
+func callerIsOperator(r *http.Request) bool {
+	if id, ok := auth.IdentityFrom(r.Context()); ok {
+		return id.Operator
+	}
+	return false
+}
+
+func callerAgentID(r *http.Request) string {
+	if id, ok := auth.IdentityFrom(r.Context()); ok {
+		return id.AgentID
+	}
+	return ""
+}
 
 func (s *Server) handleRegisterAgent(w http.ResponseWriter, r *http.Request) {
 	orgID := orgOf(r)
 	if orgID == "" {
-		errJSON(w, 400, "missing_org", "Pass X-Org-ID header.")
+		errJSON(w, 401, "unauthenticated", "Valid bearer credential required.")
+		return
+	}
+	if !callerIsOperator(r) {
+		errJSON(w, 403, "operator_required", "Only a human operator token can register agents.")
 		return
 	}
 	var body struct {
@@ -83,9 +101,13 @@ func (s *Server) handleRegisterAgent(w http.ResponseWriter, r *http.Request) {
 		errJSON(w, 400, "bad_request", "Body needs name, principal_id, environment, groups.")
 		return
 	}
-	secret := randomSecret()
-	hash, _ := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
-	a := s.store.CreateAgent(orgID, body.PrincipalID, body.Name, body.Environment, body.Groups, string(hash))
+	keyID, secret, hash, err := auth.NewAgentSecret()
+	if err != nil {
+		errJSON(w, 500, "secret_failed", "Could not issue credential.")
+		return
+	}
+	a := s.store.CreateAgent(orgID, body.PrincipalID, body.Name, body.Environment, body.Groups, hash)
+	s.store.StoreCredential(orgID, a.ID, keyID, hash)
 	s.store.Emit(domain.AuditEvent{OrgID: orgID, ActorType: "system", ActorID: "api", Type: "agent.registered", Payload: map[string]any{"agent_id": a.ID}})
 	writeJSON(w, 201, map[string]any{"agent": a, "api_secret": secret, "warning": "Store this secret; it is never shown again."})
 }
@@ -104,6 +126,10 @@ func (s *Server) handleCreateTxn(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, ok := s.store.GetAgent(orgID, body.AgentID); !ok {
 		errJSON(w, 404, "agent_not_found", "Agent is not in this organization.")
+		return
+	}
+	if !callerIsOperator(r) && body.AgentID != callerAgentID(r) {
+		errJSON(w, 403, "agent_mismatch", "A credential may only act as its own agent identity.")
 		return
 	}
 	t := s.store.CreateTxn(domain.Transaction{OrgID: orgID, AgentID: body.AgentID, PrincipalID: body.PrincipalID, SessionID: body.SessionID, Objective: body.Objective, Status: domain.TxnPlanning})
@@ -148,6 +174,10 @@ func (s *Server) handleProposeAction(w http.ResponseWriter, r *http.Request) {
 		errJSON(w, 400, "idempotency_required", "Every action needs an idempotency_key so retries never double-execute payments, emails, or deletions.")
 		return
 	}
+	if !callerIsOperator(r) && body.AgentID != callerAgentID(r) {
+		errJSON(w, 403, "agent_mismatch", "A credential may only act as its own agent identity.")
+		return
+	}
 	a, err := s.svc.ProposeAction(r.Context(), orgID, body.TransactionID, body.AgentID, body.Tool, body.Action, body.Arguments, body.IdempotencyKey)
 	if err != nil {
 		errJSON(w, 400, "propose_failed", err.Error())
@@ -189,6 +219,10 @@ func (s *Server) handleListApprovals(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDecideApproval(w http.ResponseWriter, r *http.Request) {
 	orgID := orgOf(r)
+	if !callerIsOperator(r) {
+		errJSON(w, 403, "operator_required", "Approvals are human decisions; an operator token is required.")
+		return
+	}
 	rest := strings.TrimPrefix(r.URL.Path, "/v1/approvals/")
 	parts := strings.Split(rest, "/")
 	if len(parts) != 2 || parts[1] != "decide" || r.Method != "POST" {

@@ -35,4 +35,12 @@ type Store interface {
 	Emit(e domain.AuditEvent)
 	Audit(orgID, txnID string, limit int) []domain.AuditEvent
 	VerifyChain(orgID string) int
+
+	// Auth: key-ID credential lookup. Secrets are never stored, only hashes.
+	StoreCredential(orgID, agentID, keyID, secretHash string)
+	GetCredential(keyID string) (orgID, agentID, secretHash string, ok bool)
+	// Fallback for pre-key-ID secrets: hashes of all active creds in the org.
+	AgentCredentialHashes(orgID string) map[string]string // agentID -> hash
+	CreateOperatorToken(orgID, name, keyID, secretHash string)
+	GetOperatorToken(keyID string) (orgID, name, secretHash string, ok bool)
 }

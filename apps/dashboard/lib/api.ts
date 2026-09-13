@@ -4,12 +4,16 @@ export const API_URL =
 export const ORG_ID =
   process.env.NEXT_PUBLIC_ORG_ID || "org_demo";
 
+export const API_TOKEN =
+  process.env.NEXT_PUBLIC_API_TOKEN || "";
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       "X-Org-ID": ORG_ID,
+      ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
       ...(init?.headers || {}),
     },
   });

@@ -7,9 +7,20 @@ import (
 	"os"
 
 	"github.com/agentguard/agentguard/internal/api"
+	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 )
+
+// mustOperatorToken mints the boot operator credential (shown once in logs).
+func mustOperatorToken(s store.Store, orgID string) string {
+	kid, secret, hash, err := auth.NewOperatorSecret()
+	if err != nil {
+		log.Fatalf("operator token: %v", err)
+	}
+	s.CreateOperatorToken(orgID, "boot-operator", kid, hash)
+	return secret
+}
 
 func main() {
 	ctx := context.Background()
@@ -31,6 +42,7 @@ func main() {
 			org, principal := pg.SeedOrg("Acme Corp")
 			pg.SetPolicies(org.ID, policies.DefaultSupportPolicies(org.ID))
 			log.Printf("seeded demo org %s principal %s", org.ID, principal.ID)
+			log.Printf("operator token (dashboard/human): %s", mustOperatorToken(pg, org.ID))
 		} else {
 			log.Printf("existing orgs: %v", pg.OrgIDs())
 		}
@@ -42,6 +54,7 @@ func main() {
 		mem.SetPolicies(org.ID, policies.DefaultSupportPolicies(org.ID))
 		backend = mem
 		log.Printf("store: memory (demo org %s principal %s)", org.ID, principal.ID)
+		log.Printf("operator token (dashboard/human): %s", mustOperatorToken(mem, org.ID))
 	}
 	srv := api.New(backend)
 	addr := os.Getenv("ADDR")

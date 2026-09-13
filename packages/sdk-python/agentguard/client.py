@@ -22,17 +22,20 @@ class AgentGuard:
                         transaction_id=txn["id"])
     """
 
-    def __init__(self, base_url, org_id, agent_id=None, timeout=15):
+    def __init__(self, base_url, org_id, agent_id=None, timeout=15, token=None):
         self.base_url = base_url.rstrip("/")
         self.org_id = org_id
         self.agent_id = agent_id
         self.timeout = timeout
+        self.token = token
 
     def _req(self, method, path, body=None):
         data = json.dumps(body).encode() if body is not None else None
+        headers = {"Content-Type": "application/json", "X-Org-ID": self.org_id}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
         req = urllib.request.Request(
-            self.base_url + path, method=method, data=data,
-            headers={"Content-Type": "application/json", "X-Org-ID": self.org_id},
+            self.base_url + path, method=method, data=data, headers=headers
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as r:

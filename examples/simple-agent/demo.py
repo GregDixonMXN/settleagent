@@ -15,11 +15,15 @@ from agentguard import AgentGuard
 API = os.environ.get("API_URL", "http://127.0.0.1:8080")
 ORG = os.environ["ORG"]
 PRINCIPAL = os.environ["PRINCIPAL"]
+OPERATOR = os.environ.get("OPERATOR_TOKEN", "")
 
+op = AgentGuard(API, org_id=ORG, token=OPERATOR or None)
 g = AgentGuard(API, org_id=ORG)
-reg = g.register_agent(PRINCIPAL, "support-agent-14", groups=["support"])
+reg = op.register_agent(PRINCIPAL, "support-agent-14", groups=["support"])
 agent_id = reg["agent"]["id"]
+agent_secret = reg["api_secret"]
 print("agent:", agent_id, "(secret hidden)")
+g.token = agent_secret
 g.agent_id = agent_id
 
 txn = g.create_transaction(PRINCIPAL, "sess_9182", "resolve_ticket_9182")
@@ -46,7 +50,7 @@ if big["status"] == "awaiting_approval":
     pend = g.pending_approvals()
     mine = [p for p in pend if p.get("action_id") == big["id"]]
     print(f"approval pending ({len(pend)} total); human approves...")
-    ap = g.decide(mine[0]["id"], True, decided_by="manager")
+    ap = op.decide(mine[0]["id"], True, decided_by="manager")
     print("approval:", ap["status"])
     done = g.execute_action(big["id"])
     print("after approval:", done["status"])

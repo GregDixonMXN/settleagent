@@ -17,6 +17,8 @@ type MemoryStore struct {
 	principals   map[string]domain.Principal
 	agents       map[string]domain.Agent
 	credentials  map[string]string // agentID -> bcrypt hash (never plaintext)
+	credByKey    map[string]credRef
+	opTokens     map[string]opToken
 	policies     map[string][]domain.PolicyRule
 	txns         map[string]*domain.Transaction
 	actions      map[string]*domain.TxnAction
@@ -27,8 +29,18 @@ type MemoryStore struct {
 	audit        []domain.AuditEvent
 }
 
+type credRef struct {
+	orgID, agentID, hash string
+}
+
+type opToken struct {
+	orgID, name, hash string
+}
+
 func New() *MemoryStore {
 	return &MemoryStore{
+		credByKey:   map[string]credRef{},
+		opTokens:    map[string]opToken{},
 		orgs:        map[string]domain.Organization{},
 		principals:  map[string]domain.Principal{},
 		agents:      map[string]domain.Agent{},
@@ -326,4 +338,51 @@ func (s *MemoryStore) VerifyChain(orgID string) int {
 		prev = r.Hash
 	}
 	return -1
+}
+
+func (s *MemoryStore) StoreCredential(orgID, agentID, keyID, secretHash string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.credByKey[keyID] = credRef{orgID: orgID, agentID: agentID, hash: secretHash}
+	s.credentials[agentID] = secretHash
+}
+
+func (s *MemoryStore) GetCredential(keyID string) (string, string, string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.credByKey[keyID]
+	if !ok {
+		return "", "", "", false
+	}
+	return c.orgID, c.agentID, c.hash, true
+}
+
+func (s *MemoryStore) AgentCredentialHashes(orgID string) map[string]string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := map[string]string{}
+	for id, a := range s.agents {
+		if a.OrgID == orgID {
+			if h, ok := s.credentials[id]; ok {
+				out[id] = h
+			}
+		}
+	}
+	return out
+}
+
+func (s *MemoryStore) CreateOperatorToken(orgID, name, keyID, secretHash string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.opTokens[keyID] = opToken{orgID: orgID, name: name, hash: secretHash}
+}
+
+func (s *MemoryStore) GetOperatorToken(keyID string) (string, string, string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.opTokens[keyID]
+	if !ok {
+		return "", "", "", false
+	}
+	return t.orgID, t.name, t.hash, true
 }
