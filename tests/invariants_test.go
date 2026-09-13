@@ -111,6 +111,38 @@ func TestTerminalStates(t *testing.T) {
 	}
 }
 
+func TestCommitRequiresResolvedActions(t *testing.T) {
+	s, g, ag, tx := setup(t)
+	ctx := context.Background()
+	// PLANNING with no execution path cannot jump to COMMITTED.
+	if _, err := g.Commit(ctx, tx.OrgID, tx.ID); err == nil {
+		t.Fatal("committed from PLANNING without execution")
+	}
+	tx2 := s.CreateTxn(domain.Transaction{OrgID: tx.OrgID, AgentID: ag.ID, PrincipalID: tx.PrincipalID, SessionID: "c", Objective: "c", Status: domain.TxnPlanning})
+	a, err := g.ProposeAction(ctx, tx.OrgID, tx2.ID, ag.ID, "stripe", "refund", map[string]any{"amount_cents": 8000}, "c-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Allowed but unexecuted blocks commit.
+	if _, err := g.Commit(ctx, tx.OrgID, tx2.ID); err == nil {
+		t.Fatal("committed with unexecuted action")
+	}
+	if _, err := g.ExecuteAllowed(ctx, tx.OrgID, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	done, err := g.Commit(ctx, tx.OrgID, tx2.ID)
+	if err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	if done.Status != domain.TxnCommitted {
+		t.Fatalf("status %s", done.Status)
+	}
+	// Committed is terminal.
+	if _, err := g.Commit(ctx, tx.OrgID, tx2.ID); err == nil {
+		t.Fatal("re-commit allowed")
+	}
+}
+
 func TestReceiptChainVerifies(t *testing.T) {
 	s, g, ag, tx := setup(t)
 	ctx := context.Background()

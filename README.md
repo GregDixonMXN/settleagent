@@ -1,67 +1,72 @@
 # AgentGuard
 
-Trust/transaction layer for AI agents. Every side-effecting action goes through
-preflight policy eval (`ALLOW` / `DENY` / `REQUIRE_APPROVAL` /
-`ALLOW_WITH_CONSTRAINTS`), optional human approval, guarded execution with
-saga compensation, and a hash-chained receipt.
+Trust and transaction infrastructure for autonomous AI agents. Every
+consequential action passes through identity, delegated authority, policy,
+approval, guarded execution, and tamper-evident receipts:
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/adr](docs/adr).
+    Agent → AgentGuard → Policy / Authority / Approvals → Tool / MCP / API
 
-## Quickstart
+See [ARCHITECTURE.md](ARCHITECTURE.md), [docs/](docs/), and [docs/adr](docs/adr).
 
-Prereqs: Docker + Docker Compose, Go 1.22+, Node 20+.
+## Quickstart (local)
 
-```bash
-docker compose -f deploy/docker/docker-compose.yml up --build
-```
-
-- API: `http://localhost:8080/v1` (OpenAPI at `/v1/openapi.yaml`)
-- Dashboard: `http://localhost:3000` (approvals queue, receipts, audit)
-- Postgres: `localhost:5432`
-
-Seed the demo org, agent, and policies:
+Prereqs: Go 1.26+, Node 20+, Python 3.12. Docker optional (compose),
+Postgres optional (memory store by default).
 
 ```bash
-go run ./apps/api/seed
+# 1. API (prints demo org, principal, and a one-time operator token).
+# AG_DEMO_MOCKS=1 keeps the demo on mock tools; without it, register
+# live test credentials per org (see docs/integrations.md).
+AG_DEMO_MOCKS=1 go run ./apps/api
+# store: memory (demo org <ORG> principal <PRIN>)
+# operator token (dashboard/human): ago_...
+
+# 2. Governed demo agent (new terminal; uses values from step 1)
+API_URL=http://127.0.0.1:8080 ORG=<ORG> PRINCIPAL=<PRIN> \
+  OPERATOR_TOKEN=<ago_...> python3 examples/simple-agent/demo.py
+# -> CRM update ALLOW, $80 refund ALLOW, $300 refund approval -> approved,
+#    $2000 refund DENY with reasons, 20-event audit timeline, DEMO OK
+
+# 3. Dashboard (new terminal)
+cd apps/dashboard && npm install
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 NEXT_PUBLIC_API_TOKEN=<ago_...> npm run dev
+# open http://localhost:3000 (Transactions, Approvals, Receipts, Audit)
 ```
 
-## Example agent
+With Postgres (durable): set `DATABASE_URL` before starting the API;
+migrations apply automatically and incomplete transactions are reported
+on boot. Compose (`deploy/docker/docker-compose.yml`) runs Postgres +
+API + dashboard + Jaeger: `docker compose up --build` (dashboard on
+:3000, Jaeger traces on :16686).
 
-`examples/simple-agent` shows the minimal loop: submit an action, handle the
-verdict, poll approvals, fetch the receipt.
-
-```bash
-cd examples/simple-agent
-export AGENTGUARD_URL=http://localhost:8080 AGENTGUARD_API_KEY=$SEED_KEY
-go run . --action crm.update --args '{"contact":"acme","field":"tier","value":"pro"}'
-# -> ALLOW, executes, prints receipt id + entry_hash
-```
-
-Refund policy thresholds (seeded demo):
+## What the demo proves
 
 | Action | Outcome |
 |---|---|
-| `crm.update` | ALLOW |
-| `refund $80` | ALLOW |
-| `refund $300` | REQUIRE_APPROVAL (approve in dashboard at localhost:3000) |
-| `refund $2000` | DENY |
-| failing step after a compensable step | compensates, receipt shows `compensated` |
+| `crm.lookup_customer`, `crm.update_record` | ALLOW, executed |
+| `stripe.refund` $80 | ALLOW (support auto-limit $100), executed |
+| `stripe.refund` $300 | REQUIRE_APPROVAL → human approves → executed |
+| `stripe.refund` $2000 | DENY ("above $500 prohibited"), never executes |
+| Failure after compensable step | compensates; `PARTIALLY_COMPENSATED` if irreversible steps ran |
+| Duplicate delivery (same idempotency key) | returns original record, no duplicate side effect |
 
-```bash
-go run . --action refund.issue --args '{"amount_cents":8000,"order":"o_1"}'
-go run . --action refund.issue --args '{"amount_cents":30000,"order":"o_2"}'
-# then approve o_2 at http://localhost:3000/approvals
-go run . --action refund.issue --args '{"amount_cents":200000,"order":"o_3"}'
-```
-
-Every request takes an `Idempotency-Key` header; retries with the same key
-return the original transaction instead of re-executing.
+Every request carries `Authorization: Bearer` (agent `ag_…` or operator
+`ago_…` secret); every action needs an `idempotency_key`; every denial
+explains why.
 
 ## Repo map
 
-- `apps/api` — HTTP server, `/v1` routes (thin)
-- `apps/dashboard` — Next.js dashboard
-- `internal/` — identity, gateway, policies, approvals, actions, integrations,
-  receipts, audit, store
-- `internal/store/migrations/` — SQL schema (embedded, applied on boot)
-- `tests/` — end-to-end MVP demo script
+- `apps/api` — HTTP gateway (`/v1`, OpenAPI at `/openapi.json`)
+- `apps/dashboard` — Next.js control plane (overview, transactions+timeline,
+  approvals, agents, authority, policies, receipts, audit)
+- `internal/gateway` — transaction engine (saga semantics, never fake atomicity)
+- `internal/policies` — deterministic policy engine (versioned sets, simulation)
+- `internal/auth` — bearer credentials, operator tokens, rate limiting
+- `internal/integrations` — Stripe test-mode, GitHub, Postgres read-only,
+  HTTP allowlist, MCP proxy (mocks where live creds are absent)
+- `internal/store` — Memory (dev) + Postgres (prod), embedded migrations
+- `packages/sdk-python` — Python SDK (Bearer, idempotency, approvals, verify)
+- `examples/` — `simple-agent` (support flow), `financial-agent`
+  (compensation), `signature-demo` (website-video scenario)
+- `deploy/docker`, `deploy/tofu` — compose stack + OpenTofu production stack
+- `tests/` — invariant, auth, MCP, reconcile, policy-V2, Postgres suites

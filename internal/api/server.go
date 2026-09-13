@@ -101,6 +101,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/policies/sets/{version}/activate", s.handleActivatePolicySet)
 	s.mux.HandleFunc("GET /v1/integrations", s.handleListIntegrations)
 	s.mux.HandleFunc("POST /v1/integrations/{name}/credentials", s.handleSetIntegrationCredential)
+	s.mux.HandleFunc("POST /v1/transactions/{id}/commit", s.handleCommitTxn)
 	s.mux.HandleFunc("POST /v1/integrations/http/domains", s.handleSetHTTPDomains)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }

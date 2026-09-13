@@ -3,6 +3,19 @@
 Concise record of meaningful work: date, milestone, changes, decisions,
 known limitations, next step.
 
+## 2026-09-13 — v0.2 completion pass
+
+- Fresh-clone verification: build, vet, tests, dashboard install+build,
+  compose config, tofu validate — all green from a clean clone.
+- Rewrote README to match reality (auth env, mocks flag, real commands).
+- Found no COMMITTED path: added explicit commit (refuses unresolved
+  work, terminal once) + endpoint + tests + SDK.
+- examples/signature-demo: 5-act narrated scenario (ALLOW/commit,
+  approval/commit, DENY, DROP DATABASE DENY via v2, MCP shred DENY,
+  verify finale with 4 valid signatures). Green end to end.
+- Next: v0.2 done. Candidates: persistent staging + Ballast production
+  pairing, Tryout spend guard, or first external user.
+
 ## 2026-09-13 — M10 real integrations + sealed credentials
 
 - Envelope encryption (AES-256-GCM, keys.Provider; AG_DATA_KEY or derived;

@@ -153,3 +153,6 @@ class AgentGuard:
     def set_http_domains(self, domains, methods=None):
         return self._req("POST", "/v1/integrations/http/domains",
                          {"domains": domains, "methods": methods or ["GET", "HEAD"]})
+
+    def commit(self, transaction_id):
+        return self._req("POST", f"/v1/transactions/{transaction_id}/commit")

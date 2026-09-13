@@ -165,6 +165,44 @@ func (g *Service) RunApproved(ctx context.Context, orgID, actionID string) (*dom
 	return g.run(ctx, orgID, a)
 }
 
+// Commit closes a transaction whose every action is resolved. Anything
+// still proposed, allowed-but-unexecuted, awaiting approval, unknown, or
+// failed refuses the commit with an explicit reason — a transaction never
+// commits with unresolved required actions.
+func (g *Service) Commit(ctx context.Context, orgID, txnID string) (*domain.Transaction, error) {
+	t, ok := g.store.GetTxn(orgID, txnID)
+	if !ok {
+		return nil, fmt.Errorf("transaction not found")
+	}
+	switch t.Status {
+	case domain.TxnCommitted, domain.TxnRolledBack, domain.TxnPartiallyCompensated, domain.TxnFailed:
+		return nil, fmt.Errorf("transaction is terminal (%s)", t.Status)
+	}
+	for _, a := range g.store.ActionsForTxn(orgID, txnID) {
+		switch a.Status {
+		case "executed", "denied", "compensated":
+		case "awaiting_approval":
+			return nil, fmt.Errorf("cannot commit: action %s awaits approval", a.ID)
+		case "unknown":
+			return nil, fmt.Errorf("cannot commit: action %s is unreconciled", a.ID)
+		case "failed", "compensation_failed":
+			return nil, fmt.Errorf("cannot commit: action %s failed", a.ID)
+		default:
+			return nil, fmt.Errorf("cannot commit: action %s is %s", a.ID, a.Status)
+		}
+	}
+	next := *t
+	if err := transactions.MustTransition(&next, domain.TxnCommitted); err != nil {
+		return nil, err
+	}
+	if err := g.store.SetTxnStatus(orgID, txnID, domain.TxnCommitted); err != nil {
+		return nil, err
+	}
+	g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: txnID, ActorType: "system", ActorID: "gateway", Type: "transaction.committed", Payload: map[string]any{"trace_id": observe.TraceID(ctx)}})
+	out, _ := g.store.GetTxn(orgID, txnID)
+	return out, nil
+}
+
 func (g *Service) run(ctx context.Context, orgID string, a *domain.TxnAction) (*domain.TxnAction, error) {
 	t, _ := g.store.GetTxn(orgID, a.TransactionID)
 	if t != nil && (t.Status == domain.TxnCreated || t.Status == domain.TxnPlanning || t.Status == domain.TxnAwaitingApproval) {

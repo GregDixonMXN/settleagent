@@ -169,7 +169,7 @@ func TestHTTPAllowlist(t *testing.T) {
 	// http.request has no default rule; allow it explicitly for this test.
 	rules := append([]domain.PolicyRule{{
 		ID: "http-test", OrgID: org, Name: "http-test", Priority: 1,
-		Match: domain.PolicyMatch{Tool: "http"},
+		Match:  domain.PolicyMatch{Tool: "http"},
 		Effect: domain.EffectAllow, Explanation: "test",
 	}}, policies.DefaultSupportPolicies(org)...)
 	s.SetPolicies(org, rules)
