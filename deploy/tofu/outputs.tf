@@ -1,0 +1,20 @@
+output "api_url" {
+  description = "Public base URL of the API service."
+  value       = digitalocean_app.agentguard.live_url
+}
+
+output "dashboard_url" {
+  description = "Public URL of the dashboard."
+  value       = "https://${digitalocean_app.agentguard.spec[0].service[1].name}-${digitalocean_app.agentguard.default_ingress}.ondigitalocean.app"
+}
+
+output "db_host" {
+  description = "Managed Postgres hostname (private)."
+  value       = digitalocean_database_cluster.pg.private_host
+}
+
+output "db_password" {
+  description = "Password for the agentguard_api database user."
+  value       = digitalocean_database_user.api.password
+  sensitive   = true
+}

@@ -16,12 +16,18 @@ Minimal Next.js (pages router) + TypeScript UI for the AgentGuard API. Boring, S
 ```bash
 cd apps/dashboard
 npm install
-NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_ORG_ID=org_demo npm run dev
+NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_API_TOKEN=<operator-token> npm run dev
 # open http://localhost:3000
 ```
 
-API must be running on :8080 with `X-Org-ID` scoping (the dashboard sends
-`NEXT_PUBLIC_ORG_ID`, default `org_demo`).
+API must be running on :8080. The tenant org comes from the bearer
+credential, not headers — pass an operator token (`ago_...`, printed once
+in the API boot log) as NEXT_PUBLIC_API_TOKEN so register/approve work.
+
+## Operator gate
+
+Set DASHBOARD_PASSWORD to require login (single-operator cookie session,
+v0.1 interim — no multi-user/SSO yet). Unset means open (local dev only).
 
 ## Build / typecheck
 

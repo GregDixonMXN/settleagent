@@ -35,6 +35,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://api:8080
       NEXT_PUBLIC_ORG_ID: org_demo
+      NEXT_PUBLIC_API_TOKEN: ${DASHBOARD_API_TOKEN:-}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-}
       PORT: "3000"
     ports:
       - "3000:3000"

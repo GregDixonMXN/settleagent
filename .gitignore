@@ -5,4 +5,8 @@ out/
 .env
 .env.local
 pgdata/
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
 __pycache__/
