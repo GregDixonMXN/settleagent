@@ -21,6 +21,7 @@ services:
       dockerfile: deploy/docker/Dockerfile.api
     environment:
       DATABASE_URL: postgres://agentguard:agentguard@postgres:5432/agentguard?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       PORT: "8080"
     ports:
       - "8080:8080"
@@ -39,6 +40,13 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    command: ["--collector.otlp.enabled=true"]
+    ports:
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4318:4318"
 
 volumes:
   pgdata:

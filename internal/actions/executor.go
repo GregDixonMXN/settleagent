@@ -24,6 +24,14 @@ type Registry struct {
 
 func key(tool, action string) string { return tool + "." + action }
 
+// shortKey never panics on attacker- or test-controlled short keys.
+func shortKey(s string, n int) string {
+	if len(s) < n {
+		return s
+	}
+	return s[:n]
+}
+
 func DefaultRegistry() *Registry {
 	r := &Registry{
 		handlers:     map[string]ToolHandler{},
@@ -66,7 +74,7 @@ func DefaultRegistry() *Registry {
 		if m, ok := a.Arguments["__fail_after"]; ok && m == true {
 			return nil, fmt.Errorf("injected downstream failure after refund")
 		}
-		return map[string]any{"refunded_cents": amt, "refund_id": "re_" + a.IdempotencyKey[:8]}, nil
+		return map[string]any{"refunded_cents": amt, "refund_id": "re_" + shortKey(a.IdempotencyKey, 8)}, nil
 	}
 	r.handlers["email.send"] = ok(map[string]any{"sent": true})
 	r.handlers["fs.read"] = ok(map[string]any{"content": "(mock file)"})

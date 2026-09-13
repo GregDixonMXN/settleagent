@@ -28,6 +28,8 @@ class AgentGuard:
         self.agent_id = agent_id
         self.timeout = timeout
         self.token = token
+        self.last_request_id = None
+        self.last_trace_id = None
 
     def _req(self, method, path, body=None):
         data = json.dumps(body).encode() if body is not None else None
@@ -39,6 +41,8 @@ class AgentGuard:
         )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                self.last_request_id = r.headers.get("X-Request-ID")
+                self.last_trace_id = r.headers.get("X-Trace-ID")
                 return json.loads(r.read().decode() or "null")
         except urllib.error.HTTPError as e:
             raise AgentGuardError(e.code, e.read().decode()[:2000])

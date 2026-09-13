@@ -5,9 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/agentguard/agentguard/internal/api"
 	"github.com/agentguard/agentguard/internal/auth"
+	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 )
@@ -56,7 +59,7 @@ func main() {
 		log.Printf("store: memory (demo org %s principal %s)", org.ID, principal.ID)
 		log.Printf("operator token (dashboard/human): %s", mustOperatorToken(mem, org.ID))
 	}
-	srv := api.New(backend)
+	apiSrv := api.New(backend)
 	addr := os.Getenv("ADDR")
 	if addr == "" {
 		if p := os.Getenv("PORT"); p != "" {
@@ -66,5 +69,20 @@ func main() {
 		}
 	}
 	log.Printf("agentguard api on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, srv.Handler()))
+	shutdownTracing, err := observe.Init(ctx)
+	if err != nil {
+		log.Fatalf("tracing: %v", err)
+	}
+	srv := &http.Server{Addr: addr, Handler: apiSrv.Handler()}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("serve: %v", err)
+		}
+	}()
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+	log.Print("shutting down")
+	_ = srv.Shutdown(ctx)
+	_ = shutdownTracing(ctx)
 }

@@ -60,6 +60,7 @@ assert huge["status"] == "denied", "expected DENY"
 
 full = g.get_transaction(tx)
 print(f"\ntimeline: {len(full['audit'])} events, {len(full['receipts'])} receipts")
+print(f"trace of last call: {g.last_trace_id} (request {g.last_request_id})")
 for e in full["audit"][:8]:
     print(" -", e["type"])
 print("DEMO OK")

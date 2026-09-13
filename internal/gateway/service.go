@@ -7,6 +7,7 @@ import (
 
 	"github.com/agentguard/agentguard/internal/actions"
 	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/receipts"
 	"github.com/agentguard/agentguard/internal/store"
@@ -50,6 +51,11 @@ func (g *Service) ProposeAction(ctx context.Context, orgID, txnID, agentID strin
 		return stored, nil // idempotent replay: no duplicate side effects
 	}
 	decision := policies.Evaluate(g.store.Policies(orgID), policies.EvalInput{Agent: ag, Action: *stored})
+	_, evalSpan := observe.Start(ctx, "policy.evaluate", map[string]string{
+		"tool": stored.Tool, "action": stored.Action,
+		"agent": ag.Name, "effect": string(decision.Effect),
+	})
+	evalSpan.End()
 	stored.Decision = &decision
 	switch decision.Effect {
 	case domain.EffectDeny:
@@ -114,14 +120,20 @@ func (g *Service) run(ctx context.Context, orgID string, a *domain.TxnAction) (*
 		_ = g.store.SetTxnStatus(orgID, t.ID, domain.TxnExecuting)
 	}
 	start := time.Now().UTC()
-	g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "agent", ActorID: "", Type: "action.executing", Payload: map[string]any{"action_id": a.ID}})
+	ctx, span := observe.Start(ctx, "action.execute", map[string]string{
+		"tool": a.Tool, "action": a.Action, "txn": a.TransactionID,
+	})
+	defer span.End()
+	traceID := observe.TraceID(ctx)
+	g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "agent", ActorID: "", Type: "action.executing", Payload: map[string]any{"action_id": a.ID, "trace_id": traceID}})
 	res, err := g.tools.Execute(ctx, *a)
 	a.LatencyMS = time.Since(start).Milliseconds()
 	if err != nil {
 		a.Status = "failed"
 		a.Error = err.Error()
 		g.store.UpdateAction(a)
-		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "tool", ActorID: a.Tool, Type: "action.failed", Payload: map[string]any{"action_id": a.ID, "error": err.Error()}})
+		span.RecordError(err)
+		g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "tool", ActorID: a.Tool, Type: "action.failed", Payload: map[string]any{"action_id": a.ID, "error": err.Error(), "trace_id": traceID}})
 		return a, err
 	}
 	a.Status = "executed"
@@ -136,7 +148,7 @@ func (g *Service) run(ctx context.Context, orgID string, a *domain.TxnAction) (*
 		FinancialCents: a.AmountCents, Compensation: "none",
 		StartedAt: start, CompletedAt: end,
 	})
-	g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "tool", ActorID: a.Tool, Type: "action.executed", Payload: map[string]any{"action_id": a.ID, "receipt_id": r.ID}})
+	g.store.Emit(domain.AuditEvent{OrgID: orgID, TransactionID: a.TransactionID, ActorType: "tool", ActorID: a.Tool, Type: "action.executed", Payload: map[string]any{"action_id": a.ID, "receipt_id": r.ID, "trace_id": traceID}})
 	return a, nil
 }
 
@@ -144,6 +156,8 @@ func (g *Service) run(ctx context.Context, orgID string, a *domain.TxnAction) (*
 // Irreversible actions are never claimed as rolled back; partial failures
 // yield PARTIALLY_COMPENSATED with full evidence preserved.
 func (g *Service) CompensateTransaction(ctx context.Context, orgID, txnID string) (domain.TxnStatus, error) {
+	ctx, span := observe.Start(ctx, "transaction.compensate", map[string]string{"txn": txnID})
+	defer span.End()
 	t, ok := g.store.GetTxn(orgID, txnID)
 	if !ok {
 		return "", fmt.Errorf("transaction not found")

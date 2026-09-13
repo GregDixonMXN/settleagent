@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
+	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/policies"
 	"github.com/agentguard/agentguard/internal/store"
 	"github.com/agentguard/agentguard/internal/transactions"
@@ -28,11 +30,21 @@ func New(s store.Store) *Server {
 	return srv
 }
 
-func (s *Server) Handler() http.Handler { return auth.Middleware(s.store, s.limiter, s.mux) }
+func (s *Server) Handler() http.Handler {
+	return observe.Middleware(auth.Middleware(s.store, s.limiter, s.mux))
+}
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
+	// Normalize top-level nil slices to [] so list endpoints never emit null.
+	if v != nil {
+		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Slice && rv.IsNil() {
+			_, _ = w.Write([]byte("[]"))
+			return
+		}
+	}
 	_ = json.NewEncoder(w).Encode(v)
 }
 
