@@ -11,6 +11,7 @@ import (
 	"github.com/agentguard/agentguard/internal/auth"
 	"github.com/agentguard/agentguard/internal/domain"
 	"github.com/agentguard/agentguard/internal/gateway"
+	"github.com/agentguard/agentguard/internal/integrations"
 	"github.com/agentguard/agentguard/internal/keys"
 	"github.com/agentguard/agentguard/internal/observe"
 	"github.com/agentguard/agentguard/internal/store"
@@ -31,6 +32,12 @@ type Server struct {
 func (s *Server) SetSigner(p keys.Provider) {
 	s.svc.SetSigner(p)
 	s.verifier = p
+}
+
+// EnableRealIntegrations swaps mock handlers for live ones backed by
+// per-org credentials. Tests and explicit mock setups skip this.
+func (s *Server) EnableRealIntegrations() {
+	integrations.RegisterReal(s.svc.Tools(), s.store)
 }
 
 func New(s store.Store) *Server {
@@ -92,6 +99,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/policies/sets", s.handleCreatePolicySet)
 	s.mux.HandleFunc("GET /v1/policies/sets", s.handleListPolicySets)
 	s.mux.HandleFunc("POST /v1/policies/sets/{version}/activate", s.handleActivatePolicySet)
+	s.mux.HandleFunc("GET /v1/integrations", s.handleListIntegrations)
+	s.mux.HandleFunc("POST /v1/integrations/{name}/credentials", s.handleSetIntegrationCredential)
+	s.mux.HandleFunc("POST /v1/integrations/http/domains", s.handleSetHTTPDomains)
 	s.mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
 }
 

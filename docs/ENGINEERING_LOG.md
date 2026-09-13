@@ -3,6 +3,25 @@
 Concise record of meaningful work: date, milestone, changes, decisions,
 known limitations, next step.
 
+## 2026-09-13 — M10 real integrations + sealed credentials
+
+- Envelope encryption (AES-256-GCM, keys.Provider; AG_DATA_KEY or derived;
+  legacy plaintext reads through); migration 009 credential/config tables;
+  MCP tokens sealed; per-org credential + allowlist endpoints.
+- Live integrations: Stripe test-mode (live keys refused twice, idempotency
+  forwarded, charge+amount reconciler), GitHub (6 actions, merges
+  privileged), Postgres SELECT-only (read-only txn, timeout, row cap,
+  single statement), HTTP allowlist + non-public-IP refusal.
+- Unconfigured integrations fail loudly; AG_DEMO_MOCKS=1 keeps local demo
+  on mocks with a loud boot log. docs/ballast.md pairing guide.
+- Live-verified: real SELECT rows, all refusal messages, names-only
+  inventory, sealed round-trip. Tests: stub-backed Stripe/GitHub/HTTP,
+  guardrail matrix for SQL, seal round-trip + legacy.
+- Known limitations: no GitHub/Stripe reconcilers beyond Stripe refunds;
+  per-call PG connects (no pool cache); DNS-rebinding residual on HTTP;
+  shell deferred.
+- Next: v0.2 completion pass (demo video script + fresh-clone check).
+
 ## 2026-09-13 — M9 policy V2 core
 
 - Versioned policy_sets (one active per org, DB-enforced); draft/activate

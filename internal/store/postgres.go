@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/agentguard/agentguard/internal/keys"
 	"github.com/agentguard/agentguard/internal/receipts"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,34 @@ var _ Store = (*PGStore)(nil)
 
 type PGStore struct {
 	pool *pgxpool.Pool
+	keys keys.Provider
+}
+
+func (s *PGStore) SetKeyProvider(p keys.Provider) { s.keys = p }
+
+func (s *PGStore) seal(secret string) string {
+	if secret == "" || s.keys == nil {
+		return secret
+	}
+	sealed, err := s.keys.Seal(secret)
+	if err != nil {
+		return secret
+	}
+	return sealed
+}
+
+func (s *PGStore) open(sealed string) (string, bool) {
+	if sealed == "" {
+		return "", true
+	}
+	if s.keys == nil {
+		return sealed, true
+	}
+	pt, err := s.keys.Open(sealed)
+	if err != nil {
+		return "", false
+	}
+	return pt, true
 }
 
 func Open(ctx context.Context, url string) (*PGStore, error) {
@@ -834,7 +863,7 @@ func (s *PGStore) UpsertMCPServer(srv domain.MCPServer, authToken string) domain
 		   SET url=EXCLUDED.url, auth_token=EXCLUDED.auth_token,
 		       tools=EXCLUDED.tools, classes=EXCLUDED.classes, updated_at=now()
 		 RETURNING server_id::text, created_at::text`,
-		srv.OrgID, srv.Name, srv.URL, authToken, toolsJSON, classesJSON).Scan(&id, &created)
+		srv.OrgID, srv.Name, srv.URL, s.seal(authToken), toolsJSON, classesJSON).Scan(&id, &created)
 	srv.ID = id
 	srv.HasToken = authToken != ""
 	if t, err := time.Parse(time.RFC3339, created); err == nil {
@@ -871,8 +900,79 @@ func scanMCPServer(withToken bool) (string, func(pgx.Row) (domain.MCPServer, str
 
 func (s *PGStore) GetMCPServer(orgID, name string) (domain.MCPServer, string, bool) {
 	cols, scan := scanMCPServer(true)
-	return scan(s.pool.QueryRow(context.Background(),
+	srv, sealed, ok := scan(s.pool.QueryRow(context.Background(),
 		`SELECT `+cols+` FROM mcp_servers WHERE org_id=$1 AND name=$2`, orgID, name))
+	if !ok {
+		return domain.MCPServer{}, "", false
+	}
+	token, ok := s.open(sealed)
+	if !ok {
+		return domain.MCPServer{}, "", false
+	}
+	return srv, token, true
+}
+
+func (s *PGStore) SetIntegrationCredential(orgID, name, secret string) error {
+	if secret == "" {
+		return fmt.Errorf("empty secret")
+	}
+	_, err := s.pool.Exec(context.Background(),
+		`INSERT INTO integration_credentials(org_id, name, secret_enc, updated_at)
+		 VALUES($1,$2,$3,now())
+		 ON CONFLICT (org_id, name) DO UPDATE SET secret_enc=EXCLUDED.secret_enc, updated_at=now()`,
+		orgID, name, s.seal(secret))
+	return err
+}
+
+func (s *PGStore) GetIntegrationCredential(orgID, name string) (string, bool) {
+	var sealed string
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT secret_enc FROM integration_credentials WHERE org_id=$1 AND name=$2`,
+		orgID, name).Scan(&sealed)
+	if err != nil {
+		return "", false
+	}
+	return s.open(sealed)
+}
+
+func (s *PGStore) ListIntegrationCredentials(orgID string) []string {
+	rows, err := s.pool.Query(context.Background(),
+		`SELECT name FROM integration_credentials WHERE org_id=$1 ORDER BY name`, orgID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+func (s *PGStore) SetIntegrationConfig(orgID, name string, config map[string]any) {
+	_, _ = s.pool.Exec(context.Background(),
+		`INSERT INTO integration_configs(org_id, name, config, updated_at)
+		 VALUES($1,$2,$3::jsonb,now())
+		 ON CONFLICT (org_id, name) DO UPDATE SET config=EXCLUDED.config, updated_at=now()`,
+		orgID, name, jsonParam(config))
+}
+
+func (s *PGStore) GetIntegrationConfig(orgID, name string) (map[string]any, bool) {
+	var text string
+	err := s.pool.QueryRow(context.Background(),
+		`SELECT config::text FROM integration_configs WHERE org_id=$1 AND name=$2`,
+		orgID, name).Scan(&text)
+	if err != nil {
+		return nil, false
+	}
+	var out map[string]any
+	if err := json.Unmarshal([]byte(text), &out); err != nil {
+		return nil, false
+	}
+	return out, true
 }
 
 func (s *PGStore) ListMCPServers(orgID string) []domain.MCPServer {

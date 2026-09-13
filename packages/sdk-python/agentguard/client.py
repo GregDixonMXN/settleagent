@@ -143,3 +143,13 @@ class AgentGuard:
 
     def activate_policy_set(self, version):
         return self._req("POST", f"/v1/policies/sets/{version}/activate")
+
+    def set_integration_credential(self, name, secret):
+        return self._req("POST", f"/v1/integrations/{name}/credentials", {"secret": secret})
+
+    def integrations(self):
+        return self._req("GET", "/v1/integrations")
+
+    def set_http_domains(self, domains, methods=None):
+        return self._req("POST", "/v1/integrations/http/domains",
+                         {"domains": domains, "methods": methods or ["GET", "HEAD"]})

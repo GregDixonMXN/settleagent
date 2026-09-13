@@ -41,5 +41,34 @@ intercepts every call through the normal engine path:
 
 - Streamable HTTP transport only, no stdio servers, no notifications.
 - Tool catalog is cached at registration; re-register to refresh.
-- Upstream tokens are stored reversibly (no envelope encryption yet).
+- Upstream tokens sealed at rest since M10 (AES-256-GCM); plaintext legacy
+  rows read through and reseal on next write.
 - Scheme guard only for SSRF (http/https); no allowlist or DNS pinning yet.
+
+---
+
+# Real integrations (M10)
+
+Native tools backed by live providers, per-org credentials sealed at rest
+(`integration_credentials`, AES-256-GCM via keys.Provider; `AG_DATA_KEY`
+explicit or derived from the signing key):
+
+- `stripe.refund` / `stripe.read_customer` — test-mode only (`sk_test_`;
+  live keys refused at registration and at call time). Refund passes the
+  action idempotency key as Stripe's `Idempotency-Key`; reconciliation
+  matches refunds by charge + amount.
+- `github.read_repo/read_issue/create_issue/comment/open_pr/merge_pr` —
+  personal access token per org; merges are PRIVILEGED.
+- `postgres.query` — SELECT/WITH/VALUES/TABLE/EXPLAIN only, single
+  statement, read-only transaction, 10s statement timeout, 100-row cap.
+  Anything else is rejected with an explanation. Writes are future work.
+- `http.request` — default-deny against an operator-managed domain
+  allowlist (`POST /v1/integrations/http/domains`); non-public IPs refused
+  (DNS-rebinding residual documented); GET/HEAD are reads, other methods
+  carry an explicit unknown-side-effects warning.
+
+Manage: `POST /v1/integrations/:name/credentials` (operator;
+stripe|github|postgres), `GET /v1/integrations` (names only, never
+secrets). Unconfigured integrations fail loudly at execution —
+never silent mock fallback — except `AG_DEMO_MOCKS=1`, which keeps the
+local compose demo on mocks with a loud boot log.

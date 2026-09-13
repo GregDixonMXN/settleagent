@@ -2,10 +2,12 @@ package store
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/agentguard/agentguard/internal/keys"
 	"github.com/agentguard/agentguard/internal/receipts"
 	"github.com/google/uuid"
 )
@@ -22,6 +24,9 @@ type MemoryStore struct {
 	mcpServers   map[string]mcpEntry
 	grants       map[string]*domain.AuthorityGrant
 	policySets   map[string][]domain.PolicySet
+	integCreds   map[string]string
+	integConfig  map[string]map[string]any
+	keyProvider  keys.Provider
 	policies     map[string][]domain.PolicyRule
 	txns         map[string]*domain.Transaction
 	actions      map[string]*domain.TxnAction
@@ -506,7 +511,7 @@ func (s *MemoryStore) UpsertMCPServer(srv domain.MCPServer, authToken string) do
 	}
 	srv.CreatedAt = now()
 	srv.HasToken = authToken != ""
-	s.mcpServers[mcpKey(srv.OrgID, srv.Name)] = mcpEntry{server: srv, token: authToken}
+	s.mcpServers[mcpKey(srv.OrgID, srv.Name)] = mcpEntry{server: srv, token: s.sealLocked(authToken)}
 	return srv
 }
 
@@ -517,7 +522,11 @@ func (s *MemoryStore) GetMCPServer(orgID, name string) (domain.MCPServer, string
 	if !ok {
 		return domain.MCPServer{}, "", false
 	}
-	return e.server, e.token, true
+	token, ok := s.openLocked(e.token)
+	if !ok {
+		return domain.MCPServer{}, "", false
+	}
+	return e.server, token, true
 }
 
 func (s *MemoryStore) ListMCPServers(orgID string) []domain.MCPServer {
@@ -599,4 +608,97 @@ func (s *MemoryStore) TouchOperatorToken(keyID string) {
 		t.lastUsed = now()
 		s.opTokens[keyID] = t
 	}
+}
+
+func (s *MemoryStore) SetKeyProvider(p keys.Provider) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.keyProvider = p
+}
+
+func (s *MemoryStore) sealLocked(secret string) string {
+	if secret == "" || s.keyProvider == nil {
+		return secret
+	}
+	sealed, err := s.keyProvider.Seal(secret)
+	if err != nil {
+		return secret
+	}
+	return sealed
+}
+
+func (s *MemoryStore) openLocked(sealed string) (string, bool) {
+	if sealed == "" {
+		return "", true
+	}
+	if s.keyProvider == nil {
+		return sealed, true
+	}
+	pt, err := s.keyProvider.Open(sealed)
+	if err != nil {
+		return "", false
+	}
+	return pt, true
+}
+
+func (s *MemoryStore) SetIntegrationCredential(orgID, name, secret string) error {
+	if secret == "" {
+		return fmt.Errorf("empty secret")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.integCreds == nil {
+		s.integCreds = map[string]string{}
+	}
+	s.integCreds[orgID+"|"+name] = s.sealLocked(secret)
+	return nil
+}
+
+func (s *MemoryStore) GetIntegrationCredential(orgID, name string) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	sealed, ok := s.integCreds[orgID+"|"+name]
+	if !ok {
+		return "", false
+	}
+	return s.openLocked(sealed)
+}
+
+func (s *MemoryStore) ListIntegrationCredentials(orgID string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []string{}
+	for k := range s.integCreds {
+		if strings.HasPrefix(k, orgID+"|") {
+			out = append(out, strings.TrimPrefix(k, orgID+"|"))
+		}
+	}
+	return out
+}
+
+func (s *MemoryStore) SetIntegrationConfig(orgID, name string, config map[string]any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.integConfig == nil {
+		s.integConfig = map[string]map[string]any{}
+	}
+	cp := map[string]any{}
+	for k, v := range config {
+		cp[k] = v
+	}
+	s.integConfig[orgID+"|"+name] = cp
+}
+
+func (s *MemoryStore) GetIntegrationConfig(orgID, name string) (map[string]any, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.integConfig[orgID+"|"+name]
+	if !ok {
+		return nil, false
+	}
+	cp := map[string]any{}
+	for k, v := range c {
+		cp[k] = v
+	}
+	return cp, true
 }

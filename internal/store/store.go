@@ -1,6 +1,7 @@
 package store
 
 import "github.com/agentguard/agentguard/internal/domain"
+import "github.com/agentguard/agentguard/internal/keys"
 
 // Store is the persistence contract the gateway depends on.
 // MemoryStore (dev/test) and PGStore (production) both implement it.
@@ -66,4 +67,13 @@ type Store interface {
 	RevokeCredential(keyID string) bool
 	TouchCredential(keyID string)
 	TouchOperatorToken(keyID string)
+
+	// Third-party integration secrets (sealed at rest) + config.
+	// SetKeyProvider enables sealing; nil provider stores plaintext (dev).
+	SetKeyProvider(p keys.Provider)
+	SetIntegrationCredential(orgID, name, secret string) error
+	GetIntegrationCredential(orgID, name string) (string, bool)
+	ListIntegrationCredentials(orgID string) []string
+	SetIntegrationConfig(orgID, name string, config map[string]any)
+	GetIntegrationConfig(orgID, name string) (map[string]any, bool)
 }

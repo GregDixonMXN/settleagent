@@ -65,8 +65,10 @@ func main() {
 		log.Fatalf("signing keys: %v", err)
 	} else {
 		apiSrv.SetSigner(signer)
+		backend.SetKeyProvider(signer)
 		log.Printf("receipt signing: key %s (persistent=%v)", signer.KeyID(), persistent)
 	}
+	apiSrv.EnableRealIntegrations()
 	addr := os.Getenv("ADDR")
 	if addr == "" {
 		if p := os.Getenv("PORT"); p != "" {
