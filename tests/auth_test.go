@@ -183,6 +183,29 @@ func TestLegacySecretNeedsOrg(t *testing.T) {
 	_ = ag
 }
 
+func TestCORSPreflight(t *testing.T) {
+	s, _, _, _, _, _ := authSetup(t)
+	h := api.New(s).Handler()
+	req := httptest.NewRequest("OPTIONS", "/v1/transactions", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != 204 {
+		t.Fatalf("preflight: %d", rec.Code)
+	}
+	if rec.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Fatal("missing allow-origin on preflight")
+	}
+	// Unlisted origins get no CORS headers.
+	req = httptest.NewRequest("OPTIONS", "/v1/transactions", nil)
+	req.Header.Set("Origin", "https://evil.example")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatal("CORS granted to unlisted origin")
+	}
+}
+
 func TestRateLimit(t *testing.T) {
 	s, _, _, secret, _, _ := authSetup(t)
 	limited := auth.Middleware(s, auth.NewLimiter(2, time.Minute), http.HandlerFunc(

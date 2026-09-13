@@ -32,7 +32,7 @@ func New(s store.Store) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return observe.Middleware(auth.Middleware(s.store, s.limiter, s.mux))
+	return corsMiddleware(observe.Middleware(auth.Middleware(s.store, s.limiter, s.mux)))
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
