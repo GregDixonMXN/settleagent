@@ -1,6 +1,6 @@
 # Business Source License 1.1
 
-Licensor:             GregDixonMXN
+Licensor:             Masxon LLC
 Licensed Work:        AgentGuard
 Additional Use Grant: You may use the Licensed Work in production,
                       provided such use is not a Managed Service.
