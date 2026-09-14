@@ -70,3 +70,19 @@ explains why.
   (compensation), `signature-demo` (website-video scenario)
 - `deploy/docker`, `deploy/tofu` — compose stack + OpenTofu production stack
 - `tests/` — invariant, auth, MCP, reconcile, policy-V2, Postgres suites
+
+## License & paid tiers
+
+Licensed under the [Business Source License 1.1](LICENSE.md): free to
+self-host in production for your own agents; offering AgentGuard itself
+as a hosted service to third parties requires a commercial license.
+Every version converts to Apache 2.0 on its Change Date.
+
+| Tier | Price | What you get |
+|---|---|---|
+| Community | Free | Full engine, SDKs, dashboard, Postgres store. Self-hosted. |
+| Pilot | $500/mo | Design-partner onboarding: integration help for your first governed tools, roadmap influence, direct support channel. Capped cohorts. |
+| Enterprise | Custom | SSO/SAML, audit retention + compliance export, SLA, private deploy review. |
+
+Pilots: open an issue titled `Pilot:` with what your agents spend and
+touch — if it's a fit, first governed action live within two weeks.
