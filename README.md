@@ -29,7 +29,7 @@ API_URL=http://127.0.0.1:8080 ORG=<ORG> PRINCIPAL=<PRIN> \
 
 # 3. Dashboard (new terminal)
 cd apps/dashboard && npm install
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 NEXT_PUBLIC_API_TOKEN=<sto_...> npm run dev
+SETTLEAGENT_API_URL=http://127.0.0.1:8080 SETTLEAGENT_OPERATOR_TOKEN=<sto_...> npm run dev
 # open http://localhost:3000 (Transactions, Approvals, Receipts, Audit)
 ```
 

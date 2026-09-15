@@ -16,13 +16,15 @@ Minimal Next.js (pages router) + TypeScript UI for the SettleAgent API. Boring, 
 ```bash
 cd apps/dashboard
 npm install
-NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_API_TOKEN=<operator-token> npm run dev
+SETTLEAGENT_API_URL=http://localhost:8080 SETTLEAGENT_OPERATOR_TOKEN=<operator-token> npm run dev
 # open http://localhost:3000
 ```
 
 API must be running on :8080. The tenant org comes from the bearer
 credential, not headers — pass an operator token (`sto_...`, printed once
-in the API boot log) as NEXT_PUBLIC_API_TOKEN so register/approve work.
+in the API boot log) as SETTLEAGENT_OPERATOR_TOKEN so register/approve work.
+The browser never sees it: pages call same-origin `/api/backend`, which
+attaches the server-side credential.
 
 ## Operator gate
 
@@ -40,7 +42,7 @@ npm run build
 
 ```bash
 docker build -t settleagent-dashboard ./apps/dashboard
-docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 settleagent-dashboard
+docker run -p 3000:3000 -e SETTLEAGENT_API_URL=http://localhost:8080 settleagent-dashboard
 ```
 
 Or via compose from repo root: `docker compose -f deploy/docker/docker-compose.yml up --build`.

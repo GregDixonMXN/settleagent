@@ -1,19 +1,11 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-export const ORG_ID =
-  process.env.NEXT_PUBLIC_ORG_ID || "org_demo";
-
-export const API_TOKEN =
-  process.env.NEXT_PUBLIC_API_TOKEN || "";
-
+// Operator token lives server-side only (SETTLEAGENT_OPERATOR_TOKEN,
+// attached by /api/backend). The browser calls same-origin with its
+// session cookie and never sees the credential.
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`/api/backend${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "X-Org-ID": ORG_ID,
-      ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
       ...(init?.headers || {}),
     },
   });

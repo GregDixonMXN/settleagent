@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
-import { API_URL, ORG_ID } from "../lib/api";
 
 const NAV = [
   { href: "/", label: "Overview" },
@@ -30,8 +29,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="meta">
-          <div>{ORG_ID}</div>
-          <div className="muted">{API_URL}</div>
+          <div className="muted">via gateway proxy</div>
         </div>
       </aside>
       <main className="main">{children}</main>

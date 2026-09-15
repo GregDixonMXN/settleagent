@@ -34,9 +34,9 @@ services:
     build:
       context: ../../apps/dashboard
     environment:
-      NEXT_PUBLIC_API_URL: http://api:8080
-      NEXT_PUBLIC_ORG_ID: org_demo
-      NEXT_PUBLIC_API_TOKEN: ${DASHBOARD_API_TOKEN:-}
+      SETTLEAGENT_API_URL: http://api:8080
+      SETTLEAGENT_ORG_ID: org_demo
+      SETTLEAGENT_OPERATOR_TOKEN: ${DASHBOARD_API_TOKEN:-}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-}
       PORT: "3000"
     ports:
