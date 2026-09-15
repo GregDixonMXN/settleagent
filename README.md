@@ -84,5 +84,5 @@ Every version converts to Apache 2.0 on its Change Date.
 | Pilot | $500/mo | Design-partner onboarding: integration help for your first governed tools, roadmap influence, direct support channel. Capped cohorts. |
 | Enterprise | Custom | SSO/SAML, audit retention + compliance export, SLA, private deploy review. |
 
-Pilots: open an issue titled `Pilot:` with what your agents spend and
+Pilots: see [PILOT.md](PILOT.md), or open an issue titled `Pilot:` with what your agents spend and
 touch — if it's a fit, first governed action live within two weeks.
