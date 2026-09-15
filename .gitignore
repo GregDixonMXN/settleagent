@@ -10,3 +10,4 @@ pgdata/
 *.tfstate.backup
 *.tfvars
 __pycache__/
+*.tsbuildinfo
