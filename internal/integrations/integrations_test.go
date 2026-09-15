@@ -128,6 +128,15 @@ func TestGitHubAgainstStub(t *testing.T) {
 func TestPostgresGuardsAndRead(t *testing.T) {
 	s, g, ag, tx, org := testStore(t)
 	pgURL := testPGURL(t)
+	if probe, err := store.Open(context.Background(), pgURL); err != nil {
+		t.Skipf("no postgres available: %v", err)
+	} else {
+		if perr := probe.Pool().Ping(context.Background()); perr != nil {
+			probe.Close()
+			t.Skipf("no postgres available: %v", perr)
+		}
+		probe.Close()
+	}
 	if err := s.SetIntegrationCredential(org, "postgres", pgURL); err != nil {
 		t.Fatal(err)
 	}
