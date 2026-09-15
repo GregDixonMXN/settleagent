@@ -1,4 +1,4 @@
-module github.com/agentguard/agentguard
+module github.com/settleagent/settleagent
 
 go 1.26.0
 

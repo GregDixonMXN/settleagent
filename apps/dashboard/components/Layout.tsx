@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="side">
-        <div className="brand">AgentGuard</div>
+        <div className="brand">SettleAgent</div>
         <nav>
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={active(n.href) ? "nav on" : "nav"}>

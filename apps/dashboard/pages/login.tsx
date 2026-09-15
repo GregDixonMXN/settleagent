@@ -23,7 +23,7 @@ export default function Login() {
 
   return (
     <div style={{ maxWidth: 360, margin: "15vh auto" }}>
-      <h1>AgentGuard</h1>
+      <h1>SettleAgent</h1>
       <p className="sub">Operator sign-in. Single-operator gate for v0.1.</p>
       {error && <div className="err">{error}</div>}
       <form onSubmit={submit}>

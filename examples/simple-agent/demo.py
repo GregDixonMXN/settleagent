@@ -10,15 +10,15 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../packages/sdk-python"))
-from agentguard import AgentGuard
+from settleagent import SettleAgent
 
 API = os.environ.get("API_URL", "http://127.0.0.1:8080")
 ORG = os.environ["ORG"]
 PRINCIPAL = os.environ["PRINCIPAL"]
 OPERATOR = os.environ.get("OPERATOR_TOKEN", "")
 
-op = AgentGuard(API, org_id=ORG, token=OPERATOR or None)
-g = AgentGuard(API, org_id=ORG)
+op = SettleAgent(API, org_id=ORG, token=OPERATOR or None)
+g = SettleAgent(API, org_id=ORG)
 reg = op.register_agent(PRINCIPAL, "support-agent-14", groups=["support"])
 agent_id = reg["agent"]["id"]
 agent_secret = reg["api_secret"]

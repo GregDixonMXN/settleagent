@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/auth"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/gateway"
-	"github.com/agentguard/agentguard/internal/integrations"
-	"github.com/agentguard/agentguard/internal/keys"
-	"github.com/agentguard/agentguard/internal/observe"
-	"github.com/agentguard/agentguard/internal/store"
-	"github.com/agentguard/agentguard/internal/transactions"
 	"github.com/google/uuid"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/auth"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/gateway"
+	"github.com/settleagent/settleagent/internal/integrations"
+	"github.com/settleagent/settleagent/internal/keys"
+	"github.com/settleagent/settleagent/internal/observe"
+	"github.com/settleagent/settleagent/internal/store"
+	"github.com/settleagent/settleagent/internal/transactions"
 )
 
 type Server struct {

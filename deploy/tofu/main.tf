@@ -8,7 +8,7 @@ resource "random_password" "db" {
 }
 
 resource "digitalocean_database_cluster" "pg" {
-  name       = "agentguard-${var.environment}"
+  name       = "settleagent-${var.environment}"
   engine     = "pg"
   version    = "16"
   size       = var.db_size
@@ -18,21 +18,21 @@ resource "digitalocean_database_cluster" "pg" {
 
 resource "digitalocean_database_db" "app" {
   cluster_id = digitalocean_database_cluster.pg.id
-  name       = "agentguard"
+  name       = "settleagent"
 }
 
 resource "digitalocean_database_user" "api" {
   cluster_id = digitalocean_database_cluster.pg.id
-  name       = "agentguard_api"
+  name       = "settleagent_api"
 }
 
 locals {
   database_url = "postgres://${digitalocean_database_user.api.name}:${digitalocean_database_user.api.password}@${digitalocean_database_cluster.pg.host}:${digitalocean_database_cluster.pg.port}/${digitalocean_database_db.app.name}?sslmode=require"
 }
 
-resource "digitalocean_app" "agentguard" {
+resource "digitalocean_app" "settleagent" {
   spec {
-    name   = "agentguard-${var.environment}"
+    name   = "settleagent-${var.environment}"
     region = var.region
 
     service {

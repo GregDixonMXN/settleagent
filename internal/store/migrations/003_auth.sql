@@ -1,7 +1,7 @@
 -- 003_auth.sql — key-ID credential lookup + human operator tokens.
 -- Secrets are bcrypt hashes only. key_id is the plaintext lookup handle:
--- agent secret   ag_<keyid>_<random>   (bound to one agent)
--- operator secret ago_<keyid>_<random> (org-wide human/dashboard access)
+-- agent secret   st_<keyid>_<random>   (bound to one agent)
+-- operator secret sto_<keyid>_<random> (org-wide human/dashboard access)
 
 ALTER TABLE agent_credentials
   ADD COLUMN IF NOT EXISTS key_id TEXT;

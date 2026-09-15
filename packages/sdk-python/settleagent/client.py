@@ -1,21 +1,21 @@
-"""AgentGuard Python SDK. Stdlib only (urllib) — no dependencies."""
+"""SettleAgent Python SDK. Stdlib only (urllib) — no dependencies."""
 import json
 import urllib.request
 import urllib.error
 import uuid
 
 
-class AgentGuardError(Exception):
+class SettleAgentError(Exception):
     def __init__(self, status, payload):
-        super().__init__(f"agentguard {status}: {payload}")
+        super().__init__(f"settleagent {status}: {payload}")
         self.status = status
         self.payload = payload
 
 
-class AgentGuard:
-    """Minimal client for the AgentGuard v1 API.
+class SettleAgent:
+    """Minimal client for the SettleAgent v1 API.
 
-    guard = AgentGuard("http://localhost:8080", org_id="ORG", agent_id="AG")
+    guard = SettleAgent("http://localhost:8080", org_id="ORG", agent_id="AG")
     txn = guard.create_transaction(principal_id="P", session_id="s", objective="o")
     act = guard.execute(tool="stripe", action="refund",
                         arguments={"amount_cents": 8000},
@@ -45,7 +45,7 @@ class AgentGuard:
                 self.last_trace_id = r.headers.get("X-Trace-ID")
                 return json.loads(r.read().decode() or "null")
         except urllib.error.HTTPError as e:
-            raise AgentGuardError(e.code, e.read().decode()[:2000])
+            raise SettleAgentError(e.code, e.read().decode()[:2000])
 
     def register_agent(self, principal_id, name, environment="production", groups=None):
         return self._req("POST", "/v1/agents", {

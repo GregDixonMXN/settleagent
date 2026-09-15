@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/api"
-	"github.com/agentguard/agentguard/internal/auth"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/settleagent/settleagent/internal/api"
+	"github.com/settleagent/settleagent/internal/auth"
+	"github.com/settleagent/settleagent/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -65,7 +65,7 @@ func TestUnauthenticatedRejected(t *testing.T) {
 func TestBadTokenRejected(t *testing.T) {
 	s, _, _, _, _, _ := authSetup(t)
 	h := api.New(s).Handler()
-	rec := doReq(t, h, "GET", "/v1/transactions", "ag_deadbeef_wrong", "")
+	rec := doReq(t, h, "GET", "/v1/transactions", "st_deadbeef_wrong", "")
 	if rec.Code != 401 {
 		t.Fatalf("expected 401 got %d", rec.Code)
 	}
@@ -134,7 +134,7 @@ func TestOperatorCanRegisterAndDecide(t *testing.T) {
 		Secret string `json:"api_secret"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &reg)
-	if !strings.HasPrefix(reg.Secret, "ag_") || reg.Agent.ID == "" {
+	if !strings.HasPrefix(reg.Secret, "st_") || reg.Agent.ID == "" {
 		t.Fatalf("bad registration response: %s", rec.Body.String())
 	}
 
@@ -157,7 +157,7 @@ func TestOperatorCanRegisterAndDecide(t *testing.T) {
 func TestLegacySecretNeedsOrg(t *testing.T) {
 	s := store.New()
 	org, principal := s.SeedOrg("Legacy Co")
-	legacy := "ag_" + strings.Repeat("ab", 24)
+	legacy := "st_" + strings.Repeat("ab", 24)
 	h, err := bcrypt.GenerateFromPassword([]byte(legacy), bcrypt.MinCost)
 	if err != nil {
 		t.Fatal(err)

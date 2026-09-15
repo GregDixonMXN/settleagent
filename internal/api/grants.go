@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/auth"
-	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/settleagent/settleagent/internal/auth"
+	"github.com/settleagent/settleagent/internal/domain"
 )
 
 var scopeEntry = regexp.MustCompile(`^([a-z0-9:_-]+)\.([a-z0-9:_*-]+)$`)

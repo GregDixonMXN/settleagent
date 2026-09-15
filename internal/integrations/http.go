@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/store"
 )
 
 var httpClient = &http.Client{Timeout: 15 * time.Second}

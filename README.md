@@ -1,10 +1,10 @@
-# AgentGuard
+# SettleAgent
 
 Trust and transaction infrastructure for autonomous AI agents. Every
 consequential action passes through identity, delegated authority, policy,
 approval, guarded execution, and tamper-evident receipts:
 
-    Agent → AgentGuard → Policy / Authority / Approvals → Tool / MCP / API
+    Agent → SettleAgent → Policy / Authority / Approvals → Tool / MCP / API
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [docs/](docs/), and [docs/adr](docs/adr).
 
@@ -19,17 +19,17 @@ Postgres optional (memory store by default).
 # live test credentials per org (see docs/integrations.md).
 AG_DEMO_MOCKS=1 go run ./apps/api
 # store: memory (demo org <ORG> principal <PRIN>)
-# operator token (dashboard/human): ago_...
+# operator token (dashboard/human): sto_...
 
 # 2. Governed demo agent (new terminal; uses values from step 1)
 API_URL=http://127.0.0.1:8080 ORG=<ORG> PRINCIPAL=<PRIN> \
-  OPERATOR_TOKEN=<ago_...> python3 examples/simple-agent/demo.py
+  OPERATOR_TOKEN=<sto_...> python3 examples/simple-agent/demo.py
 # -> CRM update ALLOW, $80 refund ALLOW, $300 refund approval -> approved,
 #    $2000 refund DENY with reasons, 20-event audit timeline, DEMO OK
 
 # 3. Dashboard (new terminal)
 cd apps/dashboard && npm install
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 NEXT_PUBLIC_API_TOKEN=<ago_...> npm run dev
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 NEXT_PUBLIC_API_TOKEN=<sto_...> npm run dev
 # open http://localhost:3000 (Transactions, Approvals, Receipts, Audit)
 ```
 
@@ -50,8 +50,8 @@ API + dashboard + Jaeger: `docker compose up --build` (dashboard on
 | Failure after compensable step | compensates; `PARTIALLY_COMPENSATED` if irreversible steps ran |
 | Duplicate delivery (same idempotency key) | returns original record, no duplicate side effect |
 
-Every request carries `Authorization: Bearer` (agent `ag_…` or operator
-`ago_…` secret); every action needs an `idempotency_key`; every denial
+Every request carries `Authorization: Bearer` (agent `st_…` or operator
+`sto_…` secret); every action needs an `idempotency_key`; every denial
 explains why.
 
 ## Repo map
@@ -74,7 +74,7 @@ explains why.
 ## License & paid tiers
 
 Licensed under the [Business Source License 1.1](LICENSE.md): free to
-self-host in production for your own agents; offering AgentGuard itself
+self-host in production for your own agents; offering SettleAgent itself
 as a hosted service to third parties requires a commercial license.
 Every version converts to Apache 2.0 on its Change Date.
 

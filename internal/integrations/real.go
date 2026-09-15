@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/store"
 )
 
 // CredentialNames are the per-org third-party credentials.

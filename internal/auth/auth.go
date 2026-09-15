@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/settleagent/settleagent/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -53,7 +53,7 @@ func NewAgentSecret() (keyID, secret, hash string, err error) {
 	if err != nil {
 		return "", "", "", err
 	}
-	secret = "ag_" + kid + "_" + r
+	secret = "st_" + kid + "_" + r
 	h, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
 		return "", "", "", err
@@ -71,7 +71,7 @@ func NewOperatorSecret() (keyID, secret, hash string, err error) {
 	if err != nil {
 		return "", "", "", err
 	}
-	secret = "ago_" + kid + "_" + r
+	secret = "sto_" + kid + "_" + r
 	h, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
 		return "", "", "", err
@@ -84,11 +84,11 @@ func check(secret, hash string) bool {
 }
 
 // Authenticate verifies a bearer secret. Legacy pre-key-ID agent secrets
-// (ag_<hex>) need the org passed explicitly since they are not
+// (st_<hex>) need the org passed explicitly since they are not
 // self-identifying; keyed secrets ignore it.
 func Authenticate(s store.Store, secret, headerOrg string) (Identity, bool) {
-	if strings.HasPrefix(secret, "ago_") {
-		rest := strings.TrimPrefix(secret, "ago_")
+	if strings.HasPrefix(secret, "sto_") {
+		rest := strings.TrimPrefix(secret, "sto_")
 		kid, _, found := strings.Cut(rest, "_")
 		if !found {
 			return Identity{}, false
@@ -100,8 +100,8 @@ func Authenticate(s store.Store, secret, headerOrg string) (Identity, bool) {
 		s.TouchOperatorToken(kid)
 		return Identity{OrgID: org, Operator: true, Name: name, KeyID: kid}, true
 	}
-	if strings.HasPrefix(secret, "ag_") {
-		rest := strings.TrimPrefix(secret, "ag_")
+	if strings.HasPrefix(secret, "st_") {
+		rest := strings.TrimPrefix(secret, "st_")
 		if kid, _, found := strings.Cut(rest, "_"); found {
 			org, agent, hash, ok := s.GetCredential(kid)
 			if !ok || !check(secret, hash) {

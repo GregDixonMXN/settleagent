@@ -1,7 +1,7 @@
 package store
 
-import "github.com/agentguard/agentguard/internal/domain"
-import "github.com/agentguard/agentguard/internal/keys"
+import "github.com/settleagent/settleagent/internal/domain"
+import "github.com/settleagent/settleagent/internal/keys"
 
 // Store is the persistence contract the gateway depends on.
 // MemoryStore (dev/test) and PGStore (production) both implement it.

@@ -1,4 +1,4 @@
-# AgentGuard Threat Model
+# SettleAgent Threat Model
 
 Scope: the gateway path — agent → `apps/api` → policy → approval → adapter/MCP
 proxy → receipt + audit. Trust boundary: everything outside `apps/api` +

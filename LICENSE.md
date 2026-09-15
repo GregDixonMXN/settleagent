@@ -1,11 +1,11 @@
 # Business Source License 1.1
 
 Licensor:             Masxon LLC
-Licensed Work:        AgentGuard
+Licensed Work:        SettleAgent
 Additional Use Grant: You may use the Licensed Work in production,
                       provided such use is not a Managed Service.
                       A "Managed Service" is any service that offers
-                      AgentGuard's transaction gating, policy enforcement,
+                      SettleAgent's transaction gating, policy enforcement,
                       approvals, or receipt/audit functionality to third
                       parties as a hosted or managed offering.
 

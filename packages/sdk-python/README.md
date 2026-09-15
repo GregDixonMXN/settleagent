@@ -1,10 +1,10 @@
-# AgentGuard Python SDK
+# SettleAgent Python SDK
 
 Stdlib only — no dependencies.
 
-    from agentguard import AgentGuard
+    from settleagent import SettleAgent
 
-    guard = AgentGuard("http://localhost:8080", org_id="ORG", agent_id="AG")
+    guard = SettleAgent("http://localhost:8080", org_id="ORG", agent_id="AG")
     txn = guard.create_transaction(principal_id="P", session_id="s1",
                                    objective="resolve_ticket_9182")
 

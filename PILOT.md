@@ -1,4 +1,4 @@
-# AgentGuard Pilot — $500/mo, capped cohorts
+# SettleAgent Pilot — $500/mo, capped cohorts
 
 For teams whose agents already touch money, APIs, or customer data and
 currently run on vibes. You bring one real agent workflow. Within two
@@ -17,7 +17,7 @@ policy, approval, and leaves a tamper-evident receipt.
 1. Clone, `docker compose up`, run the mock demo (5 minutes).
 2. We map your workflow to policy rules together: what is auto-allowed,
    what needs approval, what is denied. Deny-by-default.
-3. Your agent calls AgentGuard with its own API key. First live action
+3. Your agent calls SettleAgent with its own API key. First live action
    executes under policy with receipts.
 
 ## Week 2 — production posture

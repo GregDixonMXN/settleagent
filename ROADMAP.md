@@ -1,4 +1,4 @@
-# AgentGuard Roadmap
+# SettleAgent Roadmap
 
 Milestones are small vertical slices. Each ends with a runnable demo against the
 MVP success path: **agent requests action → gateway evaluates policy →
@@ -144,5 +144,5 @@ policy-change audit events; dashboard policy authoring.
 
 Stripe test-mode, GitHub, Postgres read-classified, HTTP with SSRF
 allowlist (shell allowlist-only or deferred); upstream-token encryption
-(local key dev, KMS-compatible prod); Ballast-against-AgentGuard on a
+(local key dev, KMS-compatible prod); Ballast-against-SettleAgent on a
 persistent stack with governed-task docs.

@@ -1,14 +1,14 @@
-# Ballast × AgentGuard — governed execution
+# Ballast × SettleAgent — governed execution
 
-Ballast runs tasks (one command in an isolated worktree). AgentGuard
+Ballast runs tasks (one command in an isolated worktree). SettleAgent
 governs what those commands may do. The pairing, proven by joint test:
 
-    Ballast task command → AgentGuard-guarded agent → policy/approval →
+    Ballast task command → SettleAgent-guarded agent → policy/approval →
     execution → receipts + audit → Ballast changeset
 
 ## Pattern
 
-The task command carries its own AgentGuard env (Ballast scrubs the
+The task command carries its own SettleAgent env (Ballast scrubs the
 environment for tasks by design):
 
     API_URL=https://guard.internal ORG=<org> PRINCIPAL=<prin>
@@ -18,7 +18,7 @@ environment for tasks by design):
 `agent.py` registers (operator token) or reuses an agent credential,
 creates a transaction per unit of work, and executes tool calls through
 `/v1/actions` (or `/v1/mcp/call`). The changeset then contains both the
-work output AND the transaction ID; reviewers check the AgentGuard
+work output AND the transaction ID; reviewers check the SettleAgent
 timeline before integrating.
 
 ## Rules that fell out of practice
@@ -28,7 +28,7 @@ timeline before integrating.
   runner's timeout expires, or the task fails closed (BLOCKED, no changeset).
 - A failing command means BLOCKED and no changeset — the audit trail still
   shows what was attempted and denied.
-- Run AgentGuard on Postgres (not memory) for any pairing that must
+- Run SettleAgent on Postgres (not memory) for any pairing that must
   survive restarts; memory is demo-only.
 
 ## Production shape

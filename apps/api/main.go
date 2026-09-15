@@ -8,12 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/agentguard/agentguard/internal/api"
-	"github.com/agentguard/agentguard/internal/auth"
-	"github.com/agentguard/agentguard/internal/keys"
-	"github.com/agentguard/agentguard/internal/observe"
-	"github.com/agentguard/agentguard/internal/policies"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/settleagent/settleagent/internal/api"
+	"github.com/settleagent/settleagent/internal/auth"
+	"github.com/settleagent/settleagent/internal/keys"
+	"github.com/settleagent/settleagent/internal/observe"
+	"github.com/settleagent/settleagent/internal/policies"
+	"github.com/settleagent/settleagent/internal/store"
 )
 
 // mustOperatorToken mints the boot operator credential (shown once in logs).
@@ -77,7 +77,7 @@ func main() {
 			addr = ":8080"
 		}
 	}
-	log.Printf("agentguard api on %s", addr)
+	log.Printf("settleagent api on %s", addr)
 	shutdownTracing, err := observe.Init(ctx)
 	if err != nil {
 		log.Fatalf("tracing: %v", err)

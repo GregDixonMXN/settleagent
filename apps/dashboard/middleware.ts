@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
   if (!password || path === "/login" || path.startsWith("/api/login")) {
     return NextResponse.next();
   }
-  const cookie = req.cookies.get("ag_session")?.value;
+  const cookie = req.cookies.get("st_session")?.value;
   if (cookie && cookie === (await expectedSession(password))) {
     return NextResponse.next();
   }

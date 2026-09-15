@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const session = await expectedSession(password);
   res.setHeader(
     "Set-Cookie",
-    `ag_session=${session}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${
+    `st_session=${session}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${
       process.env.NODE_ENV === "production" ? "; Secure" : ""
     }`
   );

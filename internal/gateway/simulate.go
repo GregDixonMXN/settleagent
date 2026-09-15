@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/observe"
-	"github.com/agentguard/agentguard/internal/policies"
-	"github.com/agentguard/agentguard/internal/receipts"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/observe"
+	"github.com/settleagent/settleagent/internal/policies"
+	"github.com/settleagent/settleagent/internal/receipts"
 )
 
 // Simulation answers "what would happen if this agent attempted this

@@ -17,7 +17,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../packages/sdk-python"))
-from agentguard import AgentGuard
+from settleagent import SettleAgent
 
 API = os.environ.get("API_URL", "http://127.0.0.1:8080")
 ORG = os.environ["ORG"]
@@ -52,9 +52,9 @@ def main():
     port = srv.server_address[1]
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 
-    op = AgentGuard(API, org_id=ORG, token=OPERATOR)
+    op = SettleAgent(API, org_id=ORG, token=OPERATOR)
     reg = op.register_agent(PRINCIPAL, "support-agent-14", groups=["support"])
-    g = AgentGuard(API, org_id=ORG, token=reg["api_secret"], agent_id=reg["agent"]["id"])
+    g = SettleAgent(API, org_id=ORG, token=reg["api_secret"], agent_id=reg["agent"]["id"])
     AG = reg["agent"]["id"]
     print(f"agent {AG} registered; upstream MCP mock on :{port}")
 

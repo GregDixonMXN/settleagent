@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/gateway"
-	"github.com/agentguard/agentguard/internal/policies"
-	"github.com/agentguard/agentguard/internal/store"
-	"github.com/agentguard/agentguard/internal/transactions"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/gateway"
+	"github.com/settleagent/settleagent/internal/policies"
+	"github.com/settleagent/settleagent/internal/store"
+	"github.com/settleagent/settleagent/internal/transactions"
 )
 
 func setup(t *testing.T) (*store.MemoryStore, *gateway.Service, domain.Agent, domain.Transaction) {

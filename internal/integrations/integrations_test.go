@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/gateway"
-	"github.com/agentguard/agentguard/internal/keys"
-	"github.com/agentguard/agentguard/internal/policies"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/actions"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/gateway"
+	"github.com/GregDixonMXN/settleagent/internal/keys"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/store"
 )
 
 func testStore(t *testing.T) (*store.MemoryStore, *gateway.Service, domain.Agent, domain.Transaction, string) {

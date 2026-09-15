@@ -10,9 +10,9 @@ Base path: `/v1`. All resources org-scoped (org derived server-side from credent
 
 - `Authorization: Bearer <secret>` required on all `/v1/*` (`/health` and
   `/openapi.json` stay open).
-- Agent secret `ag_<keyid>_<random>`: bound to one agent; `agent_id` in
+- Agent secret `st_<keyid>_<random>`: bound to one agent; `agent_id` in
   request bodies must equal the credential's agent (operators exempt).
-- Operator secret `ago_<keyid>_<random>`: human/dashboard access; required
+- Operator secret `sto_<keyid>_<random>`: human/dashboard access; required
   for `POST /v1/agents` (register), `POST /v1/approvals/:id/decide`,
   grant management, and credential rotation/revocation.
 - Authorization order per action: authenticate → resolve principal →
@@ -22,7 +22,7 @@ Base path: `/v1`. All resources org-scoped (org derived server-side from credent
 - Decisions carry machine-readable `reason_code` (`ALLOWED`,
   `AUTHORITY_EXCEEDED`, `POLICY_DENIED`, `APPROVAL_REQUIRED`) alongside the
   human `why`.
-- Pre-key-ID secrets (`ag_<hex>`) still work via bounded per-org scan when
+- Pre-key-ID secrets (`st_<hex>`) still work via bounded per-org scan when
   `X-Org-ID` is supplied; new secrets ignore that header entirely.
 - Failures are 401 (`missing_credentials`, `invalid_credentials`) or 403
   (`operator_required`, `agent_mismatch`), each with a human-readable `why`.

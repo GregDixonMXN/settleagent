@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/auth"
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/gateway"
-	"github.com/agentguard/agentguard/internal/policies"
-	"github.com/agentguard/agentguard/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/actions"
+	"github.com/GregDixonMXN/settleagent/internal/auth"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/gateway"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/store"
 )
 
 func pgURL() string {

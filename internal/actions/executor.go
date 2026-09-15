@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/settleagent/settleagent/internal/domain"
 )
 
 // ToolHandler executes a tool action (mock/sandbox in MVP). Real

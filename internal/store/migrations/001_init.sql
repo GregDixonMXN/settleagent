@@ -1,4 +1,4 @@
--- 001_init.sql — AgentGuard initial schema (Postgres)
+-- 001_init.sql — SettleAgent initial schema (Postgres)
 -- Multi-tenant: every row carries org_id; enforcement is server-side.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

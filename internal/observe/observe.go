@@ -16,7 +16,7 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("agentguard/gateway")
+var tracer = otel.Tracer("settleagent/gateway")
 
 // Init configures the global tracer provider. Trace and span IDs are always
 // generated (local SDK); spans export OTLP/HTTP only when
@@ -24,7 +24,7 @@ var tracer = otel.Tracer("agentguard/gateway")
 func Init(ctx context.Context) (func(context.Context) error, error) {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	res, err := resource.New(ctx,
-		resource.WithAttributes(semconv.ServiceName("agentguard-api")),
+		resource.WithAttributes(semconv.ServiceName("settleagent-api")),
 	)
 	if err != nil {
 		return nil, err

@@ -12,7 +12,7 @@ test:
 
 build:
 	go build ./...
-	docker build -f deploy/docker/Dockerfile.api -t agentguard-api .
+	docker build -f deploy/docker/Dockerfile.api -t settleagent-api .
 
 demo:
 	python3 examples/simple-agent/demo.py

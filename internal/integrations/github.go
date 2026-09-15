@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/domain"
 )
 
 // GitHub client (personal access token, per-org credential "github").

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/settleagent/settleagent/internal/domain"
 )
 
 func (s *Server) handleReconcile(w http.ResponseWriter, r *http.Request) {

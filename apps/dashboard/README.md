@@ -1,6 +1,6 @@
-# AgentGuard Dashboard
+# SettleAgent Dashboard
 
-Minimal Next.js (pages router) + TypeScript UI for the AgentGuard API. Boring, Stripe-like.
+Minimal Next.js (pages router) + TypeScript UI for the SettleAgent API. Boring, Stripe-like.
 
 ## Pages
 
@@ -21,7 +21,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080 NEXT_PUBLIC_API_TOKEN=<operator-token>
 ```
 
 API must be running on :8080. The tenant org comes from the bearer
-credential, not headers — pass an operator token (`ago_...`, printed once
+credential, not headers — pass an operator token (`sto_...`, printed once
 in the API boot log) as NEXT_PUBLIC_API_TOKEN so register/approve work.
 
 ## Operator gate
@@ -39,8 +39,8 @@ npm run build
 ## Docker
 
 ```bash
-docker build -t agentguard-dashboard ./apps/dashboard
-docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 agentguard-dashboard
+docker build -t settleagent-dashboard ./apps/dashboard
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=http://localhost:8080 settleagent-dashboard
 ```
 
 Or via compose from repo root: `docker compose -f deploy/docker/docker-compose.yml up --build`.

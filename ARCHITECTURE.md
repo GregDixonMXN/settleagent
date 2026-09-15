@@ -1,8 +1,8 @@
-# AgentGuard Architecture
+# SettleAgent Architecture
 
 ## What this is
 
-AgentGuard is a trust/transaction layer for AI agents. Every side-effecting
+SettleAgent is a trust/transaction layer for AI agents. Every side-effecting
 agent action goes through a preflight policy check, optional human approval,
 guarded execution with compensation, and a tamper-evident receipt.
 

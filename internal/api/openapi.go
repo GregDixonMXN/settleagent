@@ -2,7 +2,7 @@ package api
 
 const openAPISpec = `{
   "openapi": "3.0.3",
-  "info": {"title": "AgentGuard API", "version": "v1"},
+  "info": {"title": "SettleAgent API", "version": "v1"},
   "paths": {
     "/v1/agents": {"post": {"summary": "Register agent"}},
     "/v1/transactions": {

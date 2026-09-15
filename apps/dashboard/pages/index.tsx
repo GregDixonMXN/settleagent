@@ -36,7 +36,7 @@ export default function Overview() {
   return (
     <div>
       <h1>Overview</h1>
-      <p className="sub">Live state pulled from the AgentGuard API.</p>
+      <p className="sub">Live state pulled from the SettleAgent API.</p>
       {error && <div className="err">{error}</div>}
       <div className="grid">
         <div className="card"><div className="k">Transactions</div><div className="v">{txns.length}</div></div>

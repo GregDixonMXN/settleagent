@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/agentguard/agentguard/internal/domain"
-	"github.com/agentguard/agentguard/internal/integrations"
+	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/settleagent/settleagent/internal/integrations"
 )
 
 func (s *Server) handleListIntegrations(w http.ResponseWriter, r *http.Request) {

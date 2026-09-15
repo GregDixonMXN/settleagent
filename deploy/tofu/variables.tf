@@ -17,7 +17,7 @@ variable "environment" {
 }
 
 variable "repo_url" {
-  description = "GitHub repo URL of agentguard, e.g. https://github.com/ORG/agentguard."
+  description = "GitHub repo URL of settleagent, e.g. https://github.com/ORG/settleagent."
   type        = string
 }
 

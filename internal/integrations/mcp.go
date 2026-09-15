@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agentguard/agentguard/internal/actions"
-	"github.com/agentguard/agentguard/internal/domain"
+	"github.com/settleagent/settleagent/internal/actions"
+	"github.com/settleagent/settleagent/internal/domain"
 )
 
 var upstreamClient = &http.Client{Timeout: 15 * time.Second}
