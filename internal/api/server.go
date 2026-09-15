@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/GregDixonMXN/settleagent/internal/actions"
 	"github.com/GregDixonMXN/settleagent/internal/auth"
 	"github.com/GregDixonMXN/settleagent/internal/domain"
@@ -17,6 +16,7 @@ import (
 	"github.com/GregDixonMXN/settleagent/internal/observe"
 	"github.com/GregDixonMXN/settleagent/internal/store"
 	"github.com/GregDixonMXN/settleagent/internal/transactions"
+	"github.com/google/uuid"
 )
 
 type Server struct {

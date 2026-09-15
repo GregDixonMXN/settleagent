@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 -m py_compile packages/sdk-python/agentguard/*.py examples/simple-agent/demo.py examples/financial-agent/demo.py
+      - run: python3 -m py_compile packages/sdk-python/settleagent/*.py examples/simple-agent/demo.py examples/financial-agent/demo.py
   dashboard:
     runs-on: ubuntu-latest
     steps:

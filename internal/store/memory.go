@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/GregDixonMXN/settleagent/internal/domain"
 	"github.com/GregDixonMXN/settleagent/internal/keys"
 	"github.com/GregDixonMXN/settleagent/internal/receipts"
+	"github.com/google/uuid"
 )
 
 type MemoryStore struct {

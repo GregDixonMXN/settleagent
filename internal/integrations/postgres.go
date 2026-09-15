@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/GregDixonMXN/settleagent/internal/actions"
 	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/jackc/pgx/v5"
 )
 
 // Postgres read-only queries. v0.2 executes SELECT only: single statement,

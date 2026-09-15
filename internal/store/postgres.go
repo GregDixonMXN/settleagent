@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/keys"
+	"github.com/GregDixonMXN/settleagent/internal/receipts"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/GregDixonMXN/settleagent/internal/domain"
-	"github.com/GregDixonMXN/settleagent/internal/keys"
-	"github.com/GregDixonMXN/settleagent/internal/receipts"
 )
 
 var _ Store = (*PGStore)(nil)
