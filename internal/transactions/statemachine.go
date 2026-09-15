@@ -3,7 +3,7 @@ package transactions
 import (
 	"fmt"
 
-	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
 )
 
 var allowed = map[domain.TxnStatus][]domain.TxnStatus{

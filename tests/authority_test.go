@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/api"
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/api"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
 )
 
 func TestAuthorityEnforcement(t *testing.T) {

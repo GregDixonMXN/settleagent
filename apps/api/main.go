@@ -8,12 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/settleagent/settleagent/internal/api"
-	"github.com/settleagent/settleagent/internal/auth"
-	"github.com/settleagent/settleagent/internal/keys"
-	"github.com/settleagent/settleagent/internal/observe"
-	"github.com/settleagent/settleagent/internal/policies"
-	"github.com/settleagent/settleagent/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/api"
+	"github.com/GregDixonMXN/settleagent/internal/auth"
+	"github.com/GregDixonMXN/settleagent/internal/keys"
+	"github.com/GregDixonMXN/settleagent/internal/observe"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/store"
 )
 
 // mustOperatorToken mints the boot operator credential (shown once in logs).

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/integrations"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/integrations"
 )
 
 var mcpName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)

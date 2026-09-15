@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/observe"
-	"github.com/settleagent/settleagent/internal/policies"
-	"github.com/settleagent/settleagent/internal/receipts"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/observe"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/receipts"
 )
 
 // Simulation answers "what would happen if this agent attempted this

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/actions"
-	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/actions"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
 )
 
 var integClient = &http.Client{Timeout: 15 * time.Second}

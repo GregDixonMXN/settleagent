@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
 )
 
 // ScopeCovers reports whether a scope list permits tool.action.

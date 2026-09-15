@@ -1,4 +1,4 @@
-module github.com/settleagent/settleagent
+module github.com/GregDixonMXN/settleagent
 
 go 1.26.0
 

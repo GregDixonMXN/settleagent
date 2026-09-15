@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
 )
 
 type EvalInput struct {

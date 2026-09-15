@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/integrations"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/integrations"
 )
 
 func (s *Server) handleListIntegrations(w http.ResponseWriter, r *http.Request) {

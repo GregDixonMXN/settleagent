@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/api"
-	"github.com/settleagent/settleagent/internal/auth"
-	"github.com/settleagent/settleagent/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/api"
+	"github.com/GregDixonMXN/settleagent/internal/auth"
+	"github.com/GregDixonMXN/settleagent/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
 

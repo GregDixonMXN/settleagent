@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/settleagent/settleagent/internal/actions"
-	"github.com/settleagent/settleagent/internal/api"
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/gateway"
-	"github.com/settleagent/settleagent/internal/policies"
-	"github.com/settleagent/settleagent/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/actions"
+	"github.com/GregDixonMXN/settleagent/internal/api"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/gateway"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/store"
 )
 
 func policySetup(t *testing.T) (*store.MemoryStore, *gateway.Service, domain.Agent, *domain.Transaction, string) {

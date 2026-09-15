@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/settleagent/settleagent/internal/api"
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/policies"
+	"github.com/GregDixonMXN/settleagent/internal/api"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/policies"
 )
 
 // mockMCP serves JSON-RPC tools/list + tools/call.

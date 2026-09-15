@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/settleagent/settleagent/internal/actions"
-	"github.com/settleagent/settleagent/internal/auth"
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/gateway"
-	"github.com/settleagent/settleagent/internal/integrations"
-	"github.com/settleagent/settleagent/internal/keys"
-	"github.com/settleagent/settleagent/internal/observe"
-	"github.com/settleagent/settleagent/internal/store"
-	"github.com/settleagent/settleagent/internal/transactions"
+	"github.com/GregDixonMXN/settleagent/internal/actions"
+	"github.com/GregDixonMXN/settleagent/internal/auth"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/gateway"
+	"github.com/GregDixonMXN/settleagent/internal/integrations"
+	"github.com/GregDixonMXN/settleagent/internal/keys"
+	"github.com/GregDixonMXN/settleagent/internal/observe"
+	"github.com/GregDixonMXN/settleagent/internal/store"
+	"github.com/GregDixonMXN/settleagent/internal/transactions"
 )
 
 type Server struct {

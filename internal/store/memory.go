@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/settleagent/settleagent/internal/domain"
-	"github.com/settleagent/settleagent/internal/keys"
-	"github.com/settleagent/settleagent/internal/receipts"
+	"github.com/GregDixonMXN/settleagent/internal/domain"
+	"github.com/GregDixonMXN/settleagent/internal/keys"
+	"github.com/GregDixonMXN/settleagent/internal/receipts"
 )
 
 type MemoryStore struct {
