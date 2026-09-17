@@ -105,6 +105,17 @@ func (g *Service) ProposeAction(ctx context.Context, orgID, txnID, agentID strin
 		decision.ReasonCode = domain.ReasonAllowed
 	}
 	stored.Decision = &decision
+	if decision.Effect == domain.EffectAllow || decision.Effect == domain.EffectAllowWithConstraints {
+		// Optional risk screen: a confident low-risk score passes, anything
+		// else (high risk, torn judgment, unreachable judge) escalates to
+		// approval. Never loosens a decision, only adds scrutiny.
+		if escalate, why := g.jevScreenRisk(orgID, txnID, ag, stored); escalate {
+			decision.Effect = domain.EffectRequireApproval
+			decision.ReasonCode = domain.ReasonApprovalRequired
+			decision.Explanation = "risk screen: " + why
+			stored.Decision = &decision
+		}
+	}
 	switch decision.Effect {
 	case domain.EffectDeny:
 		stored.Status = "denied"

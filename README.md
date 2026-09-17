@@ -50,9 +50,21 @@ API + dashboard + Jaeger: `docker compose up --build` (dashboard on
 | Failure after compensable step | compensates; `PARTIALLY_COMPENSATED` if irreversible steps ran |
 | Duplicate delivery (same idempotency key) | returns original record, no duplicate side effect |
 
-Every request carries `Authorization: Bearer` (agent `st_…` or operator
+Every request carries `Authorization: *** (agent `st_…` or operator
 `sto_…` secret); every action needs an `idempotency_key`; every denial
 explains why.
+
+## Jev risk screen (default off)
+
+Rules see amounts and tools, not intent: a normal-looking refund to a new
+counterparty, or the fourth refund in one transaction, ALLOWs silently.
+With `SETTLE_JEV=1` (and `JEV_API_KEY` set), every ALLOW gets one risk
+judgment over the action, the agent, and its transaction siblings. High
+risk (score ≥ `SETTLE_JEV_THRESHOLD`, default 70), torn judgment
+(confidence < 0.5), or an unreachable judge escalates to REQUIRE_APPROVAL
+with the score in the audit trail. Confident low risk executes as before.
+The screen only ever adds scrutiny — DENY/APPROVAL outcomes never loosen,
+and default runs call nothing.
 
 ## Repo map
 
